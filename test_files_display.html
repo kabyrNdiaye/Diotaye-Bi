@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Affichage Fichiers</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .test-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .message-test {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+        }
+        .debug-info {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Test Affichage des Fichiers</h1>
+        
+        <div class="test-section">
+            <h3>1. Test de chargement des messages avec fichiers</h3>
+            <button onclick="testLoadMessages()">Charger les messages</button>
+            <div id="messagesResult"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>2. Test d'affichage des fichiers</h3>
+            <div id="filesDisplay"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>3. Test de téléchargement</h3>
+            <button onclick="testDownload()">Tester le téléchargement</button>
+            <div id="downloadResult"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>4. Informations de session</h3>
+            <div id="sessionInfo"></div>
+        </div>
+    </div>
+
+    <script>
+        // Simuler une session utilisateur
+        let currentUser = { id: '3', name: 'Kabyr Diop' };
+        
+        // Fonction pour charger les messages
+        async function testLoadMessages() {
+            const resultDiv = document.getElementById('messagesResult');
+            resultDiv.innerHTML = '<p>Chargement en cours...</p>';
+            
+            try {
+                const response = await fetch('php/messages.php?action=get_messages&chat_id=7&type=contact');
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <h4>Messages chargés (${data.messages.length})</h4>
+                        <div class="debug-info">${JSON.stringify(data.messages, null, 2)}</div>
+                    `;
+                    
+                    // Afficher les messages avec fichiers
+                    displayMessages(data.messages);
+                } else {
+                    resultDiv.innerHTML = `<p style="color: red;">Erreur: ${data.error}</p>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">Erreur: ${error.message}</p>`;
+            }
+        }
+        
+        // Fonction pour afficher les messages
+        function displayMessages(messages) {
+            const displayDiv = document.getElementById('filesDisplay');
+            displayDiv.innerHTML = '<h4>Affichage des messages:</h4>';
+            
+            messages.forEach(message => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message-test';
+                
+                if (message.type === 'file') {
+                    // Créer l'élément de message avec fichier
+                    const messageElement = createMessageElement(message);
+                    messageDiv.appendChild(messageElement);
+                } else {
+                    messageDiv.innerHTML = `
+                        <div class="message-bubble">
+                            <div class="message-content">${message.content}</div>
+                            <div class="message-time">${formatTime(message.timestamp)}</div>
+                        </div>
+                    `;
+                }
+                
+                displayDiv.appendChild(messageDiv);
+            });
+        }
+        
+        // Fonction pour créer un élément de message (copiée de app.js)
+        function createMessageElement(message) {
+            const div = document.createElement('div');
+            div.className = `message ${message.sender_id == currentUser.id ? 'sent' : 'received'}`;
+            div.setAttribute('data-message-id', message.id);
+            
+            let content = '';
+            
+            if (message.type === 'file') {
+                const fileIcon = getFileIcon(message.file_type || message.mime_type || 'unknown');
+                const fileSize = formatFileSize(message.file_size || 0);
+                
+                const isImage = message.file_type && message.file_type.startsWith('image/') || 
+                               message.mime_type && message.mime_type.startsWith('image/');
+                
+                if (isImage) {
+                    content = `
+                        <div class="message-bubble">
+                            <div class="message-content">
+                                <div class="file-attachment image-attachment">
+                                    <img src="php/files.php?action=download&file_id=${message.file_id}" 
+                                         alt="${message.file_name || 'Image'}" 
+                                         class="message-image"
+                                         onclick="downloadFile('${message.file_id}')"
+                                         title="Cliquez pour télécharger">
+                                    <div class="file-info">
+                                        <div class="file-name">${message.file_name || 'Image'}</div>
+                                        <div class="file-size">${fileSize}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="message-time">${formatTime(message.timestamp)}</div>
+                            <div class="message-status">${getMessageStatus(message.status)}</div>
+                        </div>
+                    `;
+                } else {
+                    content = `
+                        <div class="message-bubble">
+                            <div class="message-content">
+                                <div class="file-attachment">
+                                    <div class="file-icon ${fileIcon.type}">${fileIcon.icon}</div>
+                                    <div class="file-info">
+                                        <div class="file-name">${message.file_name || 'Fichier'}</div>
+                                        <div class="file-size">${fileSize}</div>
+                                    </div>
+                                    <button class="download-btn" onclick="downloadFile('${message.file_id}')" title="Télécharger">
+                                        📥
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="message-time">${formatTime(message.timestamp)}</div>
+                            <div class="message-status">${getMessageStatus(message.status)}</div>
+                        </div>
+                    `;
+                }
+            } else {
+                content = `
+                    <div class="message-bubble">
+                        <div class="message-content">${message.content}</div>
+                        <div class="message-time">${formatTime(message.timestamp)}</div>
+                        <div class="message-status">${getMessageStatus(message.status)}</div>
+                    </div>
+                `;
+            }
+            
+            div.innerHTML = content;
+            return div;
+        }
+        
+        // Fonctions utilitaires
+        function getFileIcon(mimeType) {
+            if (mimeType.startsWith('image/')) {
+                return { type: 'image', icon: '🖼️' };
+            } else if (mimeType.startsWith('video/')) {
+                return { type: 'video', icon: '🎥' };
+            } else if (mimeType === 'application/pdf') {
+                return { type: 'pdf', icon: '📄' };
+            } else if (mimeType.includes('word') || mimeType.includes('document')) {
+                return { type: 'document', icon: '📝' };
+            } else if (mimeType === 'text/plain') {
+                return { type: 'text', icon: '📄' };
+            } else if (mimeType.includes('zip') || mimeType.includes('rar')) {
+                return { type: 'archive', icon: '📦' };
+            } else {
+                return { type: 'other', icon: '📎' };
+            }
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+        
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        }
+        
+        function getMessageStatus(status) {
+            switch(status) {
+                case 'sent': return '✓';
+                case 'delivered': return '✓✓';
+                case 'read': return '✓✓';
+                default: return '✓';
+            }
+        }
+        
+        function downloadFile(fileId) {
+            const form = document.createElement('form');
+            form.method = 'GET';
+            form.action = 'php/files.php';
+            
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'download';
+            
+            const fileIdInput = document.createElement('input');
+            fileIdInput.type = 'hidden';
+            fileIdInput.name = 'file_id';
+            fileIdInput.value = fileId;
+            
+            form.appendChild(actionInput);
+            form.appendChild(fileIdInput);
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+        }
+        
+        function testDownload() {
+            const resultDiv = document.getElementById('downloadResult');
+            resultDiv.innerHTML = '<p>Test de téléchargement du fichier ID 5...</p>';
+            
+            // Tester le téléchargement
+            downloadFile('5');
+            
+            setTimeout(() => {
+                resultDiv.innerHTML += '<p style="color: green;">Téléchargement initié !</p>';
+            }, 1000);
+        }
+        
+        // Afficher les informations de session
+        function displaySessionInfo() {
+            const sessionDiv = document.getElementById('sessionInfo');
+            sessionDiv.innerHTML = `
+                <p><strong>Utilisateur actuel:</strong> ${currentUser.name} (ID: ${currentUser.id})</p>
+                <p><strong>URL de test:</strong> <a href="php/messages.php?action=get_messages&chat_id=7&type=contact" target="_blank">Messages avec "Grande soeur"</a></p>
+            `;
+        }
+        
+        // Initialisation
+        displaySessionInfo();
+    </script>
+</body>
+</html> 

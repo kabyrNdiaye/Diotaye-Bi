@@ -43,18 +43,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $_GET['action'] === 'get_messages') 
         exit;
     }
 
+    // Charger les informations des fichiers
+    $filesFile = __DIR__ . '/../xml/files.xml';
+    $filesXml = simplexml_load_file($filesFile);
+    $files = [];
+    if ($filesXml) {
+        foreach ($filesXml->file as $file) {
+            $files[(string)$file['id']] = [
+                'id' => (string)$file['id'],
+                'filename' => (string)$file->filename,
+                'original_name' => (string)$file->original_name,
+                'file_size' => (int)$file->file_size,
+                'file_type' => (string)$file->file_type,
+                'mime_type' => (string)$file->mime_type
+            ];
+        }
+    }
+
     $messages = [];
     foreach ($xml->message as $message) {
         $senderId = (string)$message->sender_id;
         $receiverId = (string)$message->receiver_id;
         $groupId = (string)$message->group_id;
+        $fileId = (string)$message->file_id;
         
         // Messages de contact
         if ($chatType === 'contact') {
             if (($senderId === $userId && $receiverId === $chatId) || 
                 ($senderId === $chatId && $receiverId === $userId)) {
                 
-                $messages[] = [
+                $messageData = [
                     'id' => (string)$message['id'],
                     'sender_id' => $senderId,
                     'receiver_id' => $receiverId,
@@ -62,13 +80,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $_GET['action'] === 'get_messages') 
                     'timestamp' => (string)$message->timestamp,
                     'type' => (string)$message->type,
                     'status' => (string)$message->status,
-                    'file_id' => (string)$message->file_id
+                    'file_id' => $fileId
                 ];
+                
+                // Ajouter les informations du fichier si c'est un message de fichier
+                if (!empty($fileId) && isset($files[$fileId])) {
+                    $messageData['file_name'] = $files[$fileId]['original_name'];
+                    $messageData['file_size'] = $files[$fileId]['file_size'];
+                    $messageData['file_type'] = $files[$fileId]['file_type'];
+                    $messageData['mime_type'] = $files[$fileId]['mime_type'];
+                }
+                
+                $messages[] = $messageData;
             }
         }
         // Messages de groupe
         elseif ($chatType === 'group' && $groupId === $chatId) {
-            $messages[] = [
+            $messageData = [
                 'id' => (string)$message['id'],
                 'sender_id' => $senderId,
                 'receiver_id' => $receiverId,
@@ -77,8 +105,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $_GET['action'] === 'get_messages') 
                 'timestamp' => (string)$message->timestamp,
                 'type' => (string)$message->type,
                 'status' => (string)$message->status,
-                'file_id' => (string)$message->file_id
+                'file_id' => $fileId
             ];
+            
+            // Ajouter les informations du fichier si c'est un message de fichier
+            if (!empty($fileId) && isset($files[$fileId])) {
+                $messageData['file_name'] = $files[$fileId]['original_name'];
+                $messageData['file_size'] = $files[$fileId]['file_size'];
+                $messageData['file_type'] = $files[$fileId]['file_type'];
+                $messageData['mime_type'] = $files[$fileId]['mime_type'];
+            }
+            
+            $messages[] = $messageData;
         }
     }
 

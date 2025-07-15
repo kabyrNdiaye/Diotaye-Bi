@@ -1078,3 +1078,181 @@ body {
 .add-discussion-btn:hover {
     background: var(--whatsapp-dark-green);
 }
+
+/* Styles pour les fichiers dans les messages */
+.file-attachment {
+    display: flex;
+    align-items: center;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 12px;
+    margin: 5px 0;
+    max-width: 300px;
+}
+
+.image-attachment {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 8px;
+    max-width: 250px;
+}
+
+.message-image {
+    max-width: 200px;
+    max-height: 200px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    margin-bottom: 8px;
+}
+
+.message-image:hover {
+    transform: scale(1.05);
+}
+
+.file-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.file-icon.image {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.file-icon.video {
+    background: #fce4ec;
+    color: #c2185b;
+}
+
+.file-icon.pdf {
+    background: #ffebee;
+    color: #d32f2f;
+}
+
+.file-icon.document {
+    background: #e8f5e8;
+    color: #388e3c;
+}
+
+.file-icon.text {
+    background: #fff3e0;
+    color: #f57c00;
+}
+
+.file-icon.archive {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.file-icon.other {
+    background: #f5f5f5;
+    color: #616161;
+}
+
+.file-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.file-name {
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 4px;
+    word-break: break-word;
+    font-size: 14px;
+}
+
+.file-size {
+    font-size: 12px;
+    color: #666;
+}
+
+.download-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 12px;
+    margin-left: 8px;
+    flex-shrink: 0;
+    transition: background 0.2s;
+}
+
+.download-btn:hover {
+    background: #0056b3;
+}
+
+.download-btn i {
+    font-size: 14px;
+}
+
+/* Amélioration du bouton d'upload */
+.upload-btn {
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    margin-right: 10px;
+}
+
+.upload-btn:hover {
+    background: #5a6268;
+}
+
+.upload-btn:active {
+    transform: scale(0.95);
+}
+
+/* Animation pour les messages de progression */
+.message.sending .message-bubble {
+    opacity: 0.7;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.7; }
+    50% { opacity: 1; }
+    100% { opacity: 0.7; }
+}
+
+/* Responsive pour les fichiers */
+@media (max-width: 768px) {
+    .file-attachment {
+        max-width: 250px;
+        padding: 8px;
+    }
+    
+    .file-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
+        margin-right: 8px;
+    }
+    
+    .file-name {
+        font-size: 13px;
+    }
+    
+    .download-btn {
+        padding: 6px 8px;
+        font-size: 11px;
+    }
+}

@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Upload Fichiers</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f0f0;
+        }
+        
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+        }
+        
+        .btn-success {
+            background: #28a745;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+        }
+        
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .file-upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            margin: 20px 0;
+            background: #f9f9f9;
+            transition: border-color 0.3s;
+        }
+        
+        .file-upload-area:hover {
+            border-color: #007bff;
+        }
+        
+        .file-upload-area.dragover {
+            border-color: #28a745;
+            background: #e8f5e8;
+        }
+        
+        .file-list {
+            margin: 20px 0;
+        }
+        
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 5px 0;
+            background: #f8f9fa;
+        }
+        
+        .file-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-right: 12px;
+        }
+        
+        .file-info {
+            flex: 1;
+        }
+        
+        .file-name {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        
+        .file-size {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .file-progress {
+            width: 100%;
+            height: 4px;
+            background: #e9ecef;
+            border-radius: 2px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+        
+        .file-progress-bar {
+            height: 100%;
+            background: #007bff;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .chat-simulation {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            background: #f8f9fa;
+        }
+        
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 70%;
+        }
+        
+        .message.sent {
+            background: #007bff;
+            color: white;
+            margin-left: auto;
+        }
+        
+        .message.received {
+            background: #e9ecef;
+            color: #333;
+        }
+        
+        .file-attachment {
+            display: flex;
+            align-items: center;
+            background: rgba(255,255,255,0.9);
+            border-radius: 6px;
+            padding: 8px;
+            margin: 5px 0;
+        }
+        
+        .file-attachment .file-icon {
+            width: 30px;
+            height: 30px;
+            font-size: 16px;
+            margin-right: 8px;
+        }
+        
+        .file-attachment .file-info {
+            flex: 1;
+        }
+        
+        .file-attachment .file-name {
+            font-size: 12px;
+            margin-bottom: 2px;
+        }
+        
+        .file-attachment .file-size {
+            font-size: 10px;
+        }
+        
+        .download-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 4px 8px;
+            font-size: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>📎 Test Upload Fichiers</h1>
+        <p>Cette page teste l'envoi de fichiers (photos, vidéos, documents) dans les conversations.</p>
+        
+        <div id="status"></div>
+        
+        <h3>🔧 Tests de base</h3>
+        <button class="btn" onclick="testSession()">Vérifier Session</button>
+        <button class="btn" onclick="testLoadContacts()">Charger Contacts</button>
+        
+        <h3>📁 Test Upload</h3>
+        <div class="file-upload-area" id="fileUploadArea">
+            <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: #ccc; margin-bottom: 15px;"></i>
+            <h4>Glissez-déposez vos fichiers ici</h4>
+            <p>ou cliquez pour sélectionner</p>
+            <input type="file" id="fileInput" multiple style="display: none;" accept="image/*,video/*,.pdf,.doc,.docx,.txt,.zip,.rar">
+            <button class="btn" onclick="document.getElementById('fileInput').click()">Sélectionner des fichiers</button>
+        </div>
+        
+        <div class="file-list" id="fileList"></div>
+        
+        <h3>💬 Simulation Chat</h3>
+        <div class="chat-simulation">
+            <h4>Messages avec fichiers</h4>
+            <div id="chatMessages">
+                <div class="message received">
+                    <div>Salut ! Voici le document que tu as demandé :</div>
+                    <div class="file-attachment">
+                        <div class="file-icon" style="background: #e8f5e8; color: #388e3c;">📝</div>
+                        <div class="file-info">
+                            <div class="file-name">rapport_final.docx</div>
+                            <div class="file-size">2.5 MB</div>
+                        </div>
+                        <button class="download-btn">📥</button>
+                    </div>
+                </div>
+                
+                <div class="message sent">
+                    <div>Merci ! Et voici la photo :</div>
+                    <div class="file-attachment">
+                        <div class="file-icon" style="background: #e3f2fd; color: #1976d2;">🖼️</div>
+                        <div class="file-info">
+                            <div class="file-name">photo_equipe.jpg</div>
+                            <div class="file-size">1.2 MB</div>
+                        </div>
+                        <button class="download-btn">📥</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <h3>📊 Types de fichiers supportés</h3>
+        <ul>
+            <li><strong>Images :</strong> JPG, PNG, GIF, WebP</li>
+            <li><strong>Vidéos :</strong> MP4, AVI, MOV, WMV</li>
+            <li><strong>Documents :</strong> PDF, DOC, DOCX, TXT</li>
+            <li><strong>Archives :</strong> ZIP, RAR</li>
+            <li><strong>Taille max :</strong> 10 MB par fichier</li>
+        </ul>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let selectedContact = null;
+        
+        // Vérifier la session
+        function testSession() {
+            addStatus('Vérification de la session...', 'info');
+            
+            fetch('php/check_session.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.logged_in) {
+                        currentUser = data.user;
+                        addStatus(`✅ Connecté: ${data.user.name} (ID: ${data.user.id})`, 'success');
+                        testLoadContacts();
+                    } else {
+                        addStatus('❌ Non connecté - Redirection vers login', 'error');
+                        window.location.href = 'login.html';
+                    }
+                })
+                .catch(error => {
+                    addStatus(`❌ Erreur session: ${error.message}`, 'error');
+                });
+        }
+        
+        // Charger les contacts
+        function testLoadContacts() {
+            addStatus('Chargement des contacts...', 'info');
+            
+            fetch('php/contacts.php?action=get_contacts')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        addStatus(`✅ ${data.contacts.length} contacts chargés`, 'success');
+                        if (data.contacts.length > 0) {
+                            selectedContact = data.contacts[0];
+                            addStatus(`✅ Contact sélectionné: ${selectedContact.nickname || selectedContact.name}`, 'success');
+                        }
+                    } else {
+                        addStatus(`❌ Erreur: ${data.message}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    addStatus(`❌ Erreur chargement: ${error.message}`, 'error');
+                });
+        }
+        
+        // Gestion du drag & drop
+        const fileUploadArea = document.getElementById('fileUploadArea');
+        const fileInput = document.getElementById('fileInput');
+        
+        fileUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.add('dragover');
+        });
+        
+        fileUploadArea.addEventListener('dragleave', () => {
+            fileUploadArea.classList.remove('dragover');
+        });
+        
+        fileUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            handleFiles(files);
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+        
+        // Gérer les fichiers sélectionnés
+        function handleFiles(files) {
+            if (!currentUser) {
+                addStatus('❌ Vous devez être connecté', 'error');
+                return;
+            }
+            
+            if (!selectedContact) {
+                addStatus('❌ Veuillez sélectionner un contact', 'error');
+                return;
+            }
+            
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '';
+            
+            Array.from(files).forEach((file, index) => {
+                const fileItem = createFileItem(file, index);
+                fileList.appendChild(fileItem);
+                
+                // Simuler l'upload
+                simulateFileUpload(file, fileItem);
+            });
+        }
+        
+        // Créer un élément fichier
+        function createFileItem(file, index) {
+            const div = document.createElement('div');
+            div.className = 'file-item';
+            div.id = `file-${index}`;
+            
+            const fileIcon = getFileIcon(file.type);
+            const fileSize = formatFileSize(file.size);
+            
+            div.innerHTML = `
+                <div class="file-icon" style="background: ${fileIcon.bg}; color: ${fileIcon.color};">${fileIcon.icon}</div>
+                <div class="file-info">
+                    <div class="file-name">${file.name}</div>
+                    <div class="file-size">${fileSize}</div>
+                    <div class="file-progress">
+                        <div class="file-progress-bar" id="progress-${index}"></div>
+                    </div>
+                </div>
+                <button class="btn btn-success" onclick="sendFile(${index})" id="send-btn-${index}">Envoyer</button>
+            `;
+            
+            return div;
+        }
+        
+        // Simuler l'upload
+        function simulateFileUpload(file, fileItem) {
+            const progressBar = fileItem.querySelector('.file-progress-bar');
+            const sendBtn = fileItem.querySelector('button');
+            
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Préparation...';
+            
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 20;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    sendBtn.disabled = false;
+                    sendBtn.textContent = 'Envoyer';
+                }
+                progressBar.style.width = progress + '%';
+            }, 200);
+        }
+        
+        // Envoyer un fichier
+        function sendFile(index) {
+            const fileItem = document.getElementById(`file-${index}`);
+            const sendBtn = document.getElementById(`send-btn-${index}`);
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[index];
+            
+            if (!file) {
+                addStatus('❌ Fichier non trouvé', 'error');
+                return;
+            }
+            
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Envoi...';
+            
+            addStatus(`Envoi de "${file.name}"...`, 'info');
+            
+            const formData = new FormData();
+            formData.append('action', 'send_file');
+            formData.append('sender_id', currentUser.id);
+            formData.append('receiver_id', selectedContact.id);
+            formData.append('group_id', '');
+            formData.append('file', file);
+            
+            fetch('php/messages.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    addStatus(`✅ Fichier "${file.name}" envoyé avec succès`, 'success');
+                    sendBtn.textContent = 'Envoyé ✓';
+                    sendBtn.style.background = '#28a745';
+                    
+                    // Ajouter le message dans la simulation de chat
+                    addFileMessage(file, data.file_id);
+                } else {
+                    addStatus(`❌ Erreur: ${data.error || data.message}`, 'error');
+                    sendBtn.disabled = false;
+                    sendBtn.textContent = 'Réessayer';
+                }
+            })
+            .catch(error => {
+                addStatus(`❌ Erreur envoi: ${error.message}`, 'error');
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Réessayer';
+            });
+        }
+        
+        // Ajouter un message fichier dans la simulation
+        function addFileMessage(file, fileId) {
+            const chatMessages = document.getElementById('chatMessages');
+            const fileIcon = getFileIcon(file.type);
+            const fileSize = formatFileSize(file.size);
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message sent';
+            messageDiv.innerHTML = `
+                <div>Fichier envoyé :</div>
+                <div class="file-attachment">
+                    <div class="file-icon" style="background: ${fileIcon.bg}; color: ${fileIcon.color};">${fileIcon.icon}</div>
+                    <div class="file-info">
+                        <div class="file-name">${file.name}</div>
+                        <div class="file-size">${fileSize}</div>
+                    </div>
+                    <button class="download-btn" onclick="downloadFile('${fileId}')">📥</button>
+                </div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // Télécharger un fichier
+        function downloadFile(fileId) {
+            addStatus('Téléchargement en cours...', 'info');
+            
+            fetch(`php/files.php?action=download&file_id=${fileId}`)
+                .then(response => {
+                    if (response.ok) {
+                        return response.blob();
+                    }
+                    throw new Error('Erreur de téléchargement');
+                })
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = '';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    addStatus('✅ Fichier téléchargé avec succès', 'success');
+                })
+                .catch(error => {
+                    addStatus(`❌ Erreur téléchargement: ${error.message}`, 'error');
+                });
+        }
+        
+        // Obtenir l'icône du fichier
+        function getFileIcon(mimeType) {
+            if (mimeType.startsWith('image/')) {
+                return { icon: '🖼️', bg: '#e3f2fd', color: '#1976d2' };
+            } else if (mimeType.startsWith('video/')) {
+                return { icon: '🎥', bg: '#fce4ec', color: '#c2185b' };
+            } else if (mimeType === 'application/pdf') {
+                return { icon: '📄', bg: '#ffebee', color: '#d32f2f' };
+            } else if (mimeType.includes('word') || mimeType.includes('document')) {
+                return { icon: '📝', bg: '#e8f5e8', color: '#388e3c' };
+            } else if (mimeType === 'text/plain') {
+                return { icon: '📄', bg: '#fff3e0', color: '#f57c00' };
+            } else if (mimeType.includes('zip') || mimeType.includes('rar')) {
+                return { icon: '📦', bg: '#f3e5f5', color: '#7b1fa2' };
+            } else {
+                return { icon: '📎', bg: '#f5f5f5', color: '#616161' };
+            }
+        }
+        
+        // Formater la taille du fichier
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+        
+        // Ajouter un statut
+        function addStatus(message, type) {
+            const container = document.getElementById('status');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = `${new Date().toLocaleTimeString()}: ${message}`;
+            container.appendChild(div);
+            
+            // Garder seulement les 5 derniers statuts
+            const statuses = container.querySelectorAll('.status');
+            if (statuses.length > 5) {
+                statuses[0].remove();
+            }
+        }
+        
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            testSession();
+        });
+    </script>
+</body>
+</html> 

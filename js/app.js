@@ -546,7 +546,7 @@ function displayGroups(groupsList) {
 function createGroupElement(group) {
     const div = document.createElement('div');
     div.className = 'group-item';
-    div.onclick = () => openGroup(group);
+    div.onclick = () => openChat({ ...group, type: 'group', is_member: true });
     
     const adminBadge = group.is_admin ? '<span class="admin-badge">👑 Admin</span>' : '';
     const memberCount = group.member_count || 0;
@@ -590,32 +590,45 @@ function filterGroups(searchTerm) {
 // Ouvrir un chat
 function openChat(chat) {
     currentChat = chat;
-    
     // Afficher l'interface de chat
     document.getElementById('welcomeMessage').style.display = 'none';
     document.getElementById('chatHeader').style.display = 'flex';
     document.getElementById('messagesArea').style.display = 'block';
     document.getElementById('messageInputContainer').style.display = 'flex';
-    
+
     // Mettre à jour l'en-tête du chat
     const displayName = chat.nickname || chat.name;
     document.getElementById('chatContactName').textContent = displayName;
     document.getElementById('chatContactAvatar').textContent = displayName.charAt(0).toUpperCase();
     document.getElementById('chatContactStatus').textContent = chat.online ? 'En ligne' : 'Hors ligne';
-    
+
     // Charger les messages
-    loadMessages(chat.id, chat.type || 'contact');
-    
+    if (chat.type === 'group') {
+        // Vérifier que l'utilisateur est bien membre du groupe côté JS (si info présente)
+        if (typeof chat.is_member !== 'undefined' && !chat.is_member) {
+            alert("Vous n'êtes pas membre de ce groupe ou ce groupe n'existe pas.");
+            // Réinitialiser l'UI
+            document.getElementById('messagesArea').style.display = 'none';
+            document.getElementById('messageInputContainer').style.display = 'none';
+            document.getElementById('chatHeader').style.display = 'none';
+            document.getElementById('welcomeMessage').style.display = '';
+            return;
+        }
+        loadMessages(chat.id, 'group');
+    } else {
+        loadMessages(chat.id, 'contact');
+    }
+
     // Marquer les messages comme lus
     if (chat.type === 'contact') {
         markMessagesAsRead(chat.id, 'contact');
     }
-    
+
     // Mettre à jour l'état actif dans la liste
     document.querySelectorAll('.contact-item').forEach(item => {
         item.classList.remove('active');
     });
-    
+
     // Trouver et activer l'élément correspondant
     const chatElement = document.querySelector(`[data-chat-id="${chat.id}"]`);
     if (chatElement) {
@@ -661,13 +674,24 @@ function displayMessages(messages) {
 function createMessageElement(message) {
     const div = document.createElement('div');
     div.className = `message ${message.sender_id == currentUser.id ? 'sent' : 'received'}`;
-    
+
     const time = formatTime(message.timestamp);
     const status = message.sender_id == currentUser.id ? getMessageStatus(message.status) : '';
-    
+
+    // Afficher le nom de l'expéditeur pour tous les messages de groupe
+    let senderName = '';
+    if (currentChat && currentChat.type === 'group') {
+        if (currentChat.members && Array.isArray(currentChat.members)) {
+            const sender = currentChat.members.find(m => m.id == message.sender_id);
+            senderName = sender ? `<span class='sender-name'>${sender.name}</span> ` : `<span class='sender-name'>Utilisateur ${message.sender_id}</span> `;
+        } else {
+            senderName = `<span class='sender-name'>Utilisateur ${message.sender_id}</span> `;
+        }
+    }
+
     div.innerHTML = `
         <div class="message-bubble">
-            <div class="message-content">${message.content}</div>
+            <div class="message-content">${senderName}${message.content}</div>
             <div class="message-time">
                 ${time}
                 ${status}
@@ -836,9 +860,28 @@ function handleFileUpload(event) {
         return;
     }
     
-    Array.from(files).forEach(file => {
+    // Vérifier la taille et le type des fichiers
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    const allowedTypes = [
+        'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+        'video/mp4', 'video/avi', 'video/mov', 'video/wmv',
+        'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'text/plain', 'application/zip', 'application/rar'
+    ];
+    
+    for (let file of files) {
+        if (file.size > maxSize) {
+            alert(`Le fichier "${file.name}" est trop volumineux (maximum 10MB)`);
+            continue;
+        }
+        
+        if (!allowedTypes.includes(file.type)) {
+            alert(`Le type de fichier "${file.name}" n'est pas autorisé`);
+            continue;
+        }
+        
         uploadFile(file);
-    });
+    }
     
     // Réinitialiser l'input
     event.target.value = '';
@@ -846,33 +889,234 @@ function handleFileUpload(event) {
 
 // Uploader un fichier
 function uploadFile(file) {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('action', 'upload_file');
-    formData.append('chat_id', currentChat.id);
-    formData.append('chat_type', currentChat.type);
+    if (!currentChat || !currentUser) {
+        alert('Veuillez sélectionner un chat pour envoyer des fichiers');
+        return;
+    }
     
-    fetch('php/message.php', {
+    // Afficher un message de progression
+    const progressMessage = {
+        id: 'temp-' + Date.now(),
+        content: `📎 Envoi de "${file.name}" en cours...`,
+        sender_id: currentUser.id,
+        timestamp: new Date().toISOString(),
+        status: 'sending',
+        type: 'file',
+        file_name: file.name,
+        file_size: file.size
+    };
+    
+    const messageElement = createMessageElement(progressMessage);
+    document.getElementById('messagesArea').appendChild(messageElement);
+    
+    // Scroll vers le bas
+    const messagesArea = document.getElementById('messagesArea');
+    messagesArea.scrollTop = messagesArea.scrollHeight;
+    
+    // Préparer les données pour l'upload
+    const formData = new FormData();
+    formData.append('action', 'send_file');
+    formData.append('sender_id', currentUser.id);
+    formData.append('file', file);
+    
+    if (currentChat.type === 'group') {
+        formData.append('group_id', currentChat.id);
+        formData.append('receiver_id', '');
+    } else {
+        formData.append('receiver_id', currentChat.id);
+        formData.append('group_id', '');
+    }
+    
+    fetch('php/messages.php', {
         method: 'POST',
         body: formData
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Recharger les messages pour afficher le nouveau fichier
-            loadMessages(currentChat.id, currentChat.type);
-            // Recharger la liste des fichiers
-            if (document.querySelector('.nav-tab.active').dataset.tab === 'files') {
-                loadFiles();
+            // Remplacer le message de progression par le vrai message
+            const realMessage = {
+                id: data.message_id,
+                content: `📎 ${file.name}`,
+                sender_id: currentUser.id,
+                timestamp: new Date().toISOString(),
+                status: 'sent',
+                type: 'file',
+                file_id: data.file_id,
+                file_name: file.name,
+                file_size: file.size,
+                file_type: file.type
+            };
+            
+            // Supprimer le message de progression
+            const progressElement = document.querySelector(`[data-message-id="temp-${progressMessage.id.split('-')[1]}"]`);
+            if (progressElement) {
+                progressElement.remove();
             }
+            
+            // Ajouter le vrai message
+            const realMessageElement = createMessageElement(realMessage);
+            document.getElementById('messagesArea').appendChild(realMessageElement);
+            
+            // Scroll vers le bas
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+            
+            // Actualiser la liste des discussions
+            loadChats();
+            
+            addStatus(`✅ Fichier "${file.name}" envoyé avec succès`, 'success');
         } else {
-            alert('Erreur upload: ' + data.message);
+            // Supprimer le message de progression et afficher l'erreur
+            const progressElement = document.querySelector(`[data-message-id="temp-${progressMessage.id.split('-')[1]}"]`);
+            if (progressElement) {
+                progressElement.remove();
+            }
+            
+            alert('Erreur upload: ' + (data.error || data.message || 'Erreur inconnue'));
         }
     })
     .catch(error => {
         console.error('Erreur upload fichier:', error);
+        
+        // Supprimer le message de progression
+        const progressElement = document.querySelector(`[data-message-id="temp-${progressMessage.id.split('-')[1]}"]`);
+        if (progressElement) {
+            progressElement.remove();
+        }
+        
         alert('Erreur lors de l\'upload du fichier');
     });
+}
+
+// Améliorer createMessageElement pour gérer les fichiers
+function createMessageElement(message) {
+    const div = document.createElement('div');
+    div.className = `message ${message.sender_id == currentUser.id ? 'sent' : 'received'}`;
+    div.setAttribute('data-message-id', message.id);
+    
+    let content = '';
+    
+    if (message.type === 'file') {
+        // Afficher un fichier
+        const fileIcon = getFileIcon(message.file_type || message.mime_type || 'unknown');
+        const fileSize = formatFileSize(message.file_size || 0);
+        
+        // Vérifier si c'est une image
+        const isImage = message.file_type && message.file_type.startsWith('image/') || 
+                       message.mime_type && message.mime_type.startsWith('image/');
+        
+        if (isImage) {
+            // Afficher l'image directement
+            content = `
+                <div class="message-bubble">
+                    <div class="message-content">
+                        <div class="file-attachment image-attachment">
+                            <img src="php/files.php?action=download&file_id=${message.file_id}" 
+                                 alt="${message.file_name || 'Image'}" 
+                                 class="message-image"
+                                 onclick="downloadFile('${message.file_id}')"
+                                 title="Cliquez pour télécharger">
+                            <div class="file-info">
+                                <div class="file-name">${message.file_name || 'Image'}</div>
+                                <div class="file-size">${fileSize}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="message-time">${formatTime(message.timestamp)}</div>
+                    <div class="message-status">${getMessageStatus(message.status)}</div>
+                </div>
+            `;
+        } else {
+            // Afficher un fichier normal
+            content = `
+                <div class="message-bubble">
+                    <div class="message-content">
+                        <div class="file-attachment">
+                            <div class="file-icon ${fileIcon.type}">${fileIcon.icon}</div>
+                            <div class="file-info">
+                                <div class="file-name">${message.file_name || 'Fichier'}</div>
+                                <div class="file-size">${fileSize}</div>
+                            </div>
+                            <button class="download-btn" onclick="downloadFile('${message.file_id}')" title="Télécharger">
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="message-time">${formatTime(message.timestamp)}</div>
+                    <div class="message-status">${getMessageStatus(message.status)}</div>
+                </div>
+            `;
+        }
+    } else {
+        // Message texte normal
+        content = `
+            <div class="message-bubble">
+                <div class="message-content">${message.content}</div>
+                <div class="message-time">${formatTime(message.timestamp)}</div>
+                <div class="message-status">${getMessageStatus(message.status)}</div>
+            </div>
+        `;
+    }
+    
+    div.innerHTML = content;
+    return div;
+}
+
+// Fonction pour obtenir l'icône du fichier
+function getFileIcon(mimeType) {
+    if (mimeType.startsWith('image/')) {
+        return { type: 'image', icon: '🖼️' };
+    } else if (mimeType.startsWith('video/')) {
+        return { type: 'video', icon: '🎥' };
+    } else if (mimeType === 'application/pdf') {
+        return { type: 'pdf', icon: '📄' };
+    } else if (mimeType.includes('word') || mimeType.includes('document')) {
+        return { type: 'document', icon: '📝' };
+    } else if (mimeType === 'text/plain') {
+        return { type: 'text', icon: '📄' };
+    } else if (mimeType.includes('zip') || mimeType.includes('rar')) {
+        return { type: 'archive', icon: '📦' };
+    } else {
+        return { type: 'other', icon: '📎' };
+    }
+}
+
+// Fonction pour formater la taille du fichier
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+// Fonction pour télécharger un fichier
+function downloadFile(fileId) {
+    // Créer un formulaire temporaire pour le téléchargement
+    const form = document.createElement('form');
+    form.method = 'GET';
+    form.action = 'php/files.php';
+    
+    const actionInput = document.createElement('input');
+    actionInput.type = 'hidden';
+    actionInput.name = 'action';
+    actionInput.value = 'download';
+    
+    const fileIdInput = document.createElement('input');
+    fileIdInput.type = 'hidden';
+    fileIdInput.name = 'file_id';
+    fileIdInput.value = fileId;
+    
+    form.appendChild(actionInput);
+    form.appendChild(fileIdInput);
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+}
+
+// Fonction pour ajouter un statut (pour les tests)
+function addStatus(message, type) {
+    console.log(`${type.toUpperCase()}: ${message}`);
 }
 
 // Formater l'heure
@@ -1173,7 +1417,26 @@ function filterFiles(searchTerm) {
 
 // Télécharger un fichier
 function downloadFile(fileId) {
-    window.open(`php/files.php?action=download_file&file_id=${fileId}`, '_blank');
+    // Créer un formulaire temporaire pour le téléchargement
+    const form = document.createElement('form');
+    form.method = 'GET';
+    form.action = 'php/files.php';
+    
+    const actionInput = document.createElement('input');
+    actionInput.type = 'hidden';
+    actionInput.name = 'action';
+    actionInput.value = 'download';
+    
+    const fileIdInput = document.createElement('input');
+    fileIdInput.type = 'hidden';
+    fileIdInput.name = 'file_id';
+    fileIdInput.value = fileId;
+    
+    form.appendChild(actionInput);
+    form.appendChild(fileIdInput);
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
 }
 
 // Supprimer un fichier
@@ -2309,10 +2572,5 @@ function startChatFromModal(contactObj) {
 
 // Ouvrir la gestion du groupe depuis la modale
 function openGroupFromModal(groupObj) {
-    closeModal('addDiscussionModal');
-    // Trouver le groupe dans la liste réelle
-    const g = groups.find(gr => gr.id == groupObj.id);
-    if (g) {
-        openGroup(g);
-    }
+    openChat({ ...groupObj, type: 'group', is_member: true });
 }
