@@ -1,117 +1,62 @@
 <?php
+session_start();
 header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: POST, GET, OPTIONS, DELETE');
+header('Access-Control-Allow-Headers: Content-Type');
 
-if (!extension_loaded('xml')) {
-    echo json_encode(['error' => 'Extension XML non chargée']);
-    exit;
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    exit(0);
 }
 
-session_start();
-
 if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['error' => 'Utilisateur non connecté']);
+    echo json_encode(['success' => false, 'message' => 'Non autorisé']);
     exit;
 }
 
 $groupsFile = __DIR__ . '/../xml/groups.xml';
 $usersFile = __DIR__ . '/../xml/users.xml';
+$contactsFile = __DIR__ . '/../xml/contacts.xml';
 
-// Vérifier si le fichier XML existe, sinon le créer
+// Vérifier si les fichiers XML existent
 if (!file_exists($groupsFile)) {
     $xmlContent = '<?xml version="1.0" encoding="UTF-8"?><groups></groups>';
     file_put_contents($groupsFile, $xmlContent);
 }
 
+if (!file_exists($usersFile)) {
+    echo json_encode(['success' => false, 'message' => 'Fichier users.xml manquant']);
+    exit;
+}
+
+if (!file_exists($contactsFile)) {
+    echo json_encode(['success' => false, 'message' => 'Fichier contacts.xml manquant']);
+    exit;
+}
+
+$xml = simplexml_load_file($groupsFile);
+$usersXml = simplexml_load_file($usersFile);
+$contactsXml = simplexml_load_file($contactsFile);
+
+if ($xml === false || $usersXml === false || $contactsXml === false) {
+    echo json_encode(['success' => false, 'message' => 'Erreur de chargement XML']);
+    exit;
+}
+
 // GET - Récupérer les groupes de l'utilisateur
-if ($_SERVER['REQUEST_METHOD'] === 'GET' && $_GET['action'] === 'get_user_groups') {
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action'])) {
     $userId = $_SESSION['user_id'];
     
-    $xml = simplexml_load_file($groupsFile);
-    if ($xml === false) {
-        echo json_encode(['error' => 'Erreur lors du chargement des groupes']);
-        exit;
-    }
+    if ($_GET['action'] === 'get_user_groups') {
+        $groups = [];
+        
+        foreach ($xml->group as $group) {
+            $groupId = (string)$group['id'];
+            $isMember = false;
+            $userRole = '';
 
-    $groups = [];
-    foreach ($xml->group as $group) {
-        $groupId = (string)$group['id'];
-        $isMember = false;
-        $userRole = '';
-
-        // Vérifier si l'utilisateur est membre du groupe
-        foreach ($group->members->member as $member) {
-            if ((string)$member['user_id'] === $userId) {
-                $isMember = true;
-                $userRole = (string)$member['role'];
-                break;
-            }
-        }
-
-        if ($isMember) {
-            $groups[] = [
-                'id' => $groupId,
-                'name' => (string)$group->name,
-                'description' => (string)$group->description,
-                'created_by' => (string)$group->created_by,
-                'created_at' => (string)$group->created_at,
-                'avatar' => (string)$group->avatar,
-                'member_count' => count($group->members->member),
-                'user_role' => $userRole,
-                'settings' => [
-                    'allow_files' => (string)$group->settings->allow_files === 'true',
-                    'max_file_size' => (int)$group->settings->max_file_size,
-                    'only_admin_can_add' => (string)$group->settings->only_admin_can_add === 'true'
-                ]
-            ];
-        }
-    }
-
-    echo json_encode(['success' => true, 'groups' => $groups]);
-}
-
-// GET - Récupérer tous les groupes (pour l'administration)
-elseif ($_SERVER['REQUEST_METHOD'] === 'GET' && $_GET['action'] === 'get_all_groups') {
-    $xml = simplexml_load_file($groupsFile);
-    if ($xml === false) {
-        echo json_encode(['error' => 'Erreur lors du chargement des groupes']);
-        exit;
-    }
-
-    $groups = [];
-    foreach ($xml->group as $group) {
-        $groups[] = [
-            'id' => (string)$group['id'],
-            'name' => (string)$group->name,
-            'description' => (string)$group->description,
-            'created_by' => (string)$group->created_by,
-            'created_at' => (string)$group->created_at,
-            'avatar' => (string)$group->avatar,
-            'member_count' => count($group->members->member)
-        ];
-    }
-
-    echo json_encode(['success' => true, 'groups' => $groups]);
-}
-
-// GET - Récupérer les détails d'un groupe
-elseif ($_SERVER['REQUEST_METHOD'] === 'GET' && $_GET['action'] === 'get_group_details') {
-    $groupId = $_GET['group_id'];
-    $userId = $_SESSION['user_id'];
-    
-    $xml = simplexml_load_file($groupsFile);
-    if ($xml === false) {
-        echo json_encode(['error' => 'Erreur lors du chargement des groupes']);
-        exit;
-    }
-
-    $group = null;
-    $isMember = false;
-    $userRole = '';
-
-    foreach ($xml->group as $g) {
-        if ((string)$g['id'] === $groupId) {
-            // Vérifier si l'utilisateur est membre
-            foreach ($g->members->member as $member) {
+            // Vérifier si l'utilisateur est membre du groupe
+            foreach ($group->members->member as $member) {
                 if ((string)$member['user_id'] === $userId) {
                     $isMember = true;
                     $userRole = (string)$member['role'];
@@ -119,251 +64,552 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'GET' && $_GET['action'] === 'get_group_d
                 }
             }
 
-            $group = [
-                'id' => (string)$g['id'],
-                'name' => (string)$g->name,
-                'description' => (string)$g->description,
-                'created_by' => (string)$g->created_by,
-                'created_at' => (string)$g->created_at,
-                'avatar' => (string)$g->avatar,
-                'is_member' => $isMember,
-                'user_role' => $userRole,
-                'settings' => [
-                    'allow_files' => (string)$g->settings->allow_files === 'true',
-                    'max_file_size' => (int)$g->settings->max_file_size,
-                    'only_admin_can_add' => (string)$g->settings->only_admin_can_add === 'true'
-                ]
-            ];
+            if ($isMember) {
+                $groups[] = [
+                    'id' => $groupId,
+                    'name' => (string)$group->name,
+                    'description' => (string)$group->description,
+                    'created_by' => (string)$group->created_by,
+                    'created_at' => (string)$group->created_at,
+                    'avatar' => (string)$group->avatar,
+                    'member_count' => count($group->members->member),
+                    'user_role' => $userRole,
+                    'is_admin' => $userRole === 'admin',
+                    'can_manage' => $userRole === 'admin'
+                ];
+            }
+        }
 
-            // Récupérer les membres
-            $members = [];
-            $usersXml = simplexml_load_file($usersFile);
-            
-            foreach ($g->members->member as $member) {
-                $memberUserId = (string)$member['user_id'];
-                $memberRole = (string)$member['role'];
-                $joinedAt = (string)$member['joined_at'];
+        echo json_encode(['success' => true, 'groups' => $groups]);
+        exit;
+    }
+    
+    // GET - Récupérer les détails d'un groupe
+    elseif ($_GET['action'] === 'get_group_details') {
+        $groupId = $_GET['group_id'] ?? '';
+        $userId = $_SESSION['user_id'];
+        
+        if (empty($groupId)) {
+            echo json_encode(['success' => false, 'message' => 'ID du groupe requis']);
+            exit;
+        }
 
-                // Récupérer les informations de l'utilisateur
-                foreach ($usersXml->user as $user) {
-                    if ((string)$user['id'] === $memberUserId) {
-                        $members[] = [
-                            'id' => $memberUserId,
-                            'name' => (string)$user->name,
-                            'phone' => (string)$user->phone,
-                            'status' => (string)$user->status,
-                            'avatar' => (string)$user->avatar,
-                            'role' => $memberRole,
-                            'joined_at' => $joinedAt
-                        ];
+        $group = null;
+        $isMember = false;
+        $userRole = '';
+
+        foreach ($xml->group as $g) {
+            if ((string)$g['id'] === $groupId) {
+                // Vérifier si l'utilisateur est membre
+                foreach ($g->members->member as $member) {
+                    if ((string)$member['user_id'] === $userId) {
+                        $isMember = true;
+                        $userRole = (string)$member['role'];
                         break;
                     }
                 }
+
+                if (!$isMember) {
+                    echo json_encode(['success' => false, 'message' => 'Vous n\'êtes pas membre de ce groupe']);
+                    exit;
+                }
+
+                $group = [
+                    'id' => (string)$g['id'],
+                    'name' => (string)$g->name,
+                    'description' => (string)$g->description,
+                    'created_by' => (string)$g->created_by,
+                    'created_at' => (string)$g->created_at,
+                    'avatar' => (string)$g->avatar,
+                    'is_member' => $isMember,
+                    'user_role' => $userRole,
+                    'is_admin' => $userRole === 'admin',
+                    'can_manage' => $userRole === 'admin'
+                ];
+
+                // Récupérer les membres
+                $members = [];
+                foreach ($g->members->member as $member) {
+                    $memberUserId = (string)$member['user_id'];
+                    $memberRole = (string)$member['role'];
+                    $joinedAt = (string)$member['joined_at'];
+
+                    // Récupérer les informations de l'utilisateur
+                    foreach ($usersXml->user as $user) {
+                        if ((string)$user['id'] === $memberUserId) {
+                            $members[] = [
+                                'id' => $memberUserId,
+                                'name' => (string)$user->name,
+                                'phone' => (string)$user->phone,
+                                'email' => (string)$user->email,
+                                'status' => (string)$user->status,
+                                'online' => (string)$user->status === 'Online',
+                                'avatar' => (string)$user->avatar,
+                                'role' => $memberRole,
+                                'joined_at' => $joinedAt,
+                                'is_admin' => $memberRole === 'admin'
+                            ];
+                            break;
+                        }
+                    }
+                }
+
+                $group['members'] = $members;
+                break;
             }
-
-            $group['members'] = $members;
-            break;
         }
-    }
 
-    if ($group) {
-        echo json_encode(['success' => true, 'group' => $group]);
-    } else {
-        echo json_encode(['error' => 'Groupe non trouvé']);
+        if ($group) {
+            echo json_encode(['success' => true, 'group' => $group]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Groupe non trouvé']);
+        }
+        exit;
+    }
+    
+    // GET - Récupérer les contacts disponibles pour ajouter au groupe
+    elseif ($_GET['action'] === 'get_available_contacts') {
+        $groupId = $_GET['group_id'] ?? '';
+        $userId = $_SESSION['user_id'];
+        
+        if (empty($groupId)) {
+            echo json_encode(['success' => false, 'message' => 'ID du groupe requis']);
+            exit;
+        }
+
+        // Vérifier que l'utilisateur est admin du groupe
+        $isAdmin = false;
+        foreach ($xml->group as $group) {
+            if ((string)$group['id'] === $groupId) {
+                foreach ($group->members->member as $member) {
+                    if ((string)$member['user_id'] === $userId && (string)$member['role'] === 'admin') {
+                        $isAdmin = true;
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+
+        if (!$isAdmin) {
+            echo json_encode(['success' => false, 'message' => 'Vous devez être admin pour ajouter des membres']);
+            exit;
+        }
+
+        // Récupérer les contacts de l'utilisateur
+        $userContacts = [];
+        foreach ($contactsXml->contact as $contact) {
+            if ((string)$contact->user_id === $userId) {
+                $contactUserId = (string)$contact->contact_user_id;
+                
+                // Vérifier si le contact n'est pas déjà dans le groupe
+                $isInGroup = false;
+                foreach ($xml->group as $group) {
+                    if ((string)$group['id'] === $groupId) {
+                        foreach ($group->members->member as $member) {
+                            if ((string)$member['user_id'] === $contactUserId) {
+                                $isInGroup = true;
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }
+
+                if (!$isInGroup) {
+                    // Récupérer les informations de l'utilisateur
+                    foreach ($usersXml->user as $user) {
+                        if ((string)$user['id'] === $contactUserId) {
+                            $userContacts[] = [
+                                'id' => $contactUserId,
+                                'name' => (string)$user->name,
+                                'phone' => (string)$user->phone,
+                                'email' => (string)$user->email,
+                                'status' => (string)$user->status,
+                                'online' => (string)$user->status === 'Online',
+                                'avatar' => (string)$user->avatar,
+                                'nickname' => (string)$contact->nickname
+                            ];
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        echo json_encode(['success' => true, 'contacts' => $userContacts]);
+        exit;
     }
 }
 
-// POST - Créer un nouveau groupe
-elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['action'] === 'create_group') {
-    $name = trim($_POST['name']);
-    $description = trim($_POST['description'] ?? '');
-    $createdBy = $_SESSION['user_id'];
+// POST - Actions sur les groupes
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $input = json_decode(file_get_contents('php://input'), true);
     
-    if (empty($name)) {
-        echo json_encode(['error' => 'Le nom du groupe est requis']);
-        exit;
-    }
-
-    if (strlen($name) > 100) {
-        echo json_encode(['error' => 'Le nom du groupe est trop long (maximum 100 caractères)']);
-        exit;
-    }
-
-    $xml = simplexml_load_file($groupsFile);
-    if ($xml === false) {
-        echo json_encode(['error' => 'Erreur lors du chargement des groupes']);
-        exit;
-    }
-
-    // Générer un nouvel ID
-    $maxId = 0;
-    foreach ($xml->group as $group) {
-        $groupId = (int)$group['id'];
-        if ($groupId > $maxId) {
-            $maxId = $groupId;
+    // Créer un nouveau groupe
+    if (isset($input['action']) && $input['action'] === 'create_group') {
+        $name = trim($input['name'] ?? '');
+        $description = trim($input['description'] ?? '');
+        $memberIds = $input['member_ids'] ?? [];
+        $createdBy = $_SESSION['user_id'];
+        
+        if (empty($name)) {
+            echo json_encode(['success' => false, 'message' => 'Le nom du groupe est requis']);
+            exit;
         }
-    }
-    $newId = $maxId + 1;
 
-    // Créer le nouveau groupe
-    $newGroup = $xml->addChild('group');
-    $newGroup->addAttribute('id', $newId);
-    $newGroup->addChild('name', htmlspecialchars($name));
-    $newGroup->addChild('description', htmlspecialchars($description));
-    $newGroup->addChild('created_by', $createdBy);
-    $newGroup->addChild('created_at', date('c'));
-    $newGroup->addChild('avatar', 'uploads/groups/default.jpg');
+        if (strlen($name) > 100) {
+            echo json_encode(['success' => false, 'message' => 'Le nom du groupe est trop long (maximum 100 caractères)']);
+            exit;
+        }
 
-    // Ajouter les membres
-    $members = $newGroup->addChild('members');
-    $creatorMember = $members->addChild('member');
-    $creatorMember->addAttribute('user_id', $createdBy);
-    $creatorMember->addAttribute('role', 'admin');
-    $creatorMember->addAttribute('joined_at', date('c'));
+        if (count($memberIds) < 2) {
+            echo json_encode(['success' => false, 'message' => 'Vous devez sélectionner au moins 2 contacts pour créer un groupe']);
+            exit;
+        }
 
-    // Ajouter les paramètres par défaut
-    $settings = $newGroup->addChild('settings');
-    $settings->addChild('allow_files', 'true');
-    $settings->addChild('max_file_size', '10485760'); // 10MB
-    $settings->addChild('only_admin_can_add', 'false');
+        // Vérifier que tous les membres sont des contacts de l'utilisateur
+        $validMembers = [];
+        foreach ($memberIds as $memberId) {
+            $isValidContact = false;
+            foreach ($contactsXml->contact as $contact) {
+                if ((string)$contact->user_id === $createdBy && (string)$contact->contact_user_id === $memberId) {
+                    $isValidContact = true;
+                    break;
+                }
+            }
+            
+            if ($isValidContact) {
+                $validMembers[] = $memberId;
+            }
+        }
 
-    // Sauvegarder le fichier XML
-    if ($xml->asXML($groupsFile)) {
+        if (count($validMembers) < 2) {
+            echo json_encode(['success' => false, 'message' => 'Vous devez sélectionner au moins 2 contacts valides']);
+            exit;
+        }
+
+        // Générer un nouvel ID
+        $maxId = 0;
+        foreach ($xml->group as $group) {
+            $id = (int)$group['id'];
+            if ($id > $maxId) {
+                $maxId = $id;
+            }
+        }
+        $newId = $maxId + 1;
+
+        // Créer le groupe
+        $group = $xml->addChild('group');
+        $group->addAttribute('id', $newId);
+        $group->addChild('name', $name);
+        $group->addChild('description', $description);
+        $group->addChild('created_by', $createdBy);
+        $group->addChild('created_at', date('c'));
+        $group->addChild('avatar', '');
+
+        // Ajouter les membres
+        $members = $group->addChild('members');
+        
+        // Ajouter le créateur comme admin
+        $adminMember = $members->addChild('member');
+        $adminMember->addAttribute('user_id', $createdBy);
+        $adminMember->addAttribute('role', 'admin');
+        $adminMember->addAttribute('joined_at', date('c'));
+
+        // Ajouter les autres membres
+        foreach ($validMembers as $memberId) {
+            $member = $members->addChild('member');
+            $member->addAttribute('user_id', $memberId);
+            $member->addAttribute('role', 'member');
+            $member->addAttribute('joined_at', date('c'));
+        }
+
+        $xml->asXML($groupsFile);
+        
         echo json_encode([
             'success' => true, 
             'message' => 'Groupe créé avec succès',
             'group_id' => $newId
         ]);
-    } else {
-        echo json_encode(['error' => 'Erreur lors de la sauvegarde du groupe']);
+        exit;
     }
-}
-
-// POST - Ajouter un membre au groupe
-elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['action'] === 'add_member') {
-    $groupId = $_POST['group_id'];
-    $userId = $_POST['user_id'];
-    $addedBy = $_SESSION['user_id'];
     
-    $xml = simplexml_load_file($groupsFile);
-    if ($xml === false) {
-        echo json_encode(['error' => 'Erreur lors du chargement des groupes']);
-        exit;
-    }
-
-    $group = null;
-    $isAdmin = false;
-
-    // Trouver le groupe et vérifier les permissions
-    foreach ($xml->group as $g) {
-        if ((string)$g['id'] === $groupId) {
-            $group = $g;
-            
-            // Vérifier si l'utilisateur qui ajoute est admin
-            foreach ($g->members->member as $member) {
-                if ((string)$member['user_id'] === $addedBy && (string)$member['role'] === 'admin') {
-                    $isAdmin = true;
-                    break;
-                }
-            }
-            break;
-        }
-    }
-
-    if (!$group) {
-        echo json_encode(['error' => 'Groupe non trouvé']);
-        exit;
-    }
-
-    if (!$isAdmin) {
-        echo json_encode(['error' => 'Vous devez être administrateur pour ajouter des membres']);
-        exit;
-    }
-
-    // Vérifier si l'utilisateur est déjà membre
-    foreach ($group->members->member as $member) {
-        if ((string)$member['user_id'] === $userId) {
-            echo json_encode(['error' => 'L\'utilisateur est déjà membre du groupe']);
+    // Ajouter un membre au groupe
+    elseif (isset($input['action']) && $input['action'] === 'add_member') {
+        $groupId = $input['group_id'] ?? '';
+        $memberId = $input['member_id'] ?? '';
+        $userId = $_SESSION['user_id'];
+        
+        if (empty($groupId) || empty($memberId)) {
+            echo json_encode(['success' => false, 'message' => 'ID du groupe et du membre requis']);
             exit;
         }
-    }
 
-    // Ajouter le membre
-    $newMember = $group->members->addChild('member');
-    $newMember->addAttribute('user_id', $userId);
-    $newMember->addAttribute('role', 'member');
-    $newMember->addAttribute('joined_at', date('c'));
+        // Vérifier que l'utilisateur est admin du groupe
+        $isAdmin = false;
+        $targetGroup = null;
+        foreach ($xml->group as $group) {
+            if ((string)$group['id'] === $groupId) {
+                $targetGroup = $group;
+                foreach ($group->members->member as $member) {
+                    if ((string)$member['user_id'] === $userId && (string)$member['role'] === 'admin') {
+                        $isAdmin = true;
+                        break;
+                    }
+                }
+                break;
+            }
+        }
 
-    if ($xml->asXML($groupsFile)) {
+        if (!$isAdmin) {
+            echo json_encode(['success' => false, 'message' => 'Vous devez être admin pour ajouter des membres']);
+            exit;
+        }
+
+        // Vérifier que le membre n'est pas déjà dans le groupe
+        foreach ($targetGroup->members->member as $member) {
+            if ((string)$member['user_id'] === $memberId) {
+                echo json_encode(['success' => false, 'message' => 'Ce membre est déjà dans le groupe']);
+                exit;
+            }
+        }
+
+        // Vérifier que le membre est un contact de l'utilisateur
+        $isValidContact = false;
+        foreach ($contactsXml->contact as $contact) {
+            if ((string)$contact->user_id === $userId && (string)$contact->contact_user_id === $memberId) {
+                $isValidContact = true;
+                break;
+            }
+        }
+
+        if (!$isValidContact) {
+            echo json_encode(['success' => false, 'message' => 'Vous ne pouvez ajouter que vos contacts']);
+            exit;
+        }
+
+        // Ajouter le membre
+        $newMember = $targetGroup->members->addChild('member');
+        $newMember->addAttribute('user_id', $memberId);
+        $newMember->addAttribute('role', 'member');
+        $newMember->addAttribute('joined_at', date('c'));
+
+        $xml->asXML($groupsFile);
+        
         echo json_encode(['success' => true, 'message' => 'Membre ajouté avec succès']);
-    } else {
-        echo json_encode(['error' => 'Erreur lors de la sauvegarde']);
-    }
-}
-
-// POST - Retirer un membre du groupe
-elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['action'] === 'remove_member') {
-    $groupId = $_POST['group_id'];
-    $userId = $_POST['user_id'];
-    $removedBy = $_SESSION['user_id'];
-    
-    $xml = simplexml_load_file($groupsFile);
-    if ($xml === false) {
-        echo json_encode(['error' => 'Erreur lors du chargement des groupes']);
         exit;
     }
+    
+    // Retirer un membre du groupe
+    elseif (isset($input['action']) && $input['action'] === 'remove_member') {
+        $groupId = $input['group_id'] ?? '';
+        $memberId = $input['member_id'] ?? '';
+        $userId = $_SESSION['user_id'];
+        
+        if (empty($groupId) || empty($memberId)) {
+            echo json_encode(['success' => false, 'message' => 'ID du groupe et du membre requis']);
+            exit;
+        }
 
-    $group = null;
-    $isAdmin = false;
+        // Vérifier que l'utilisateur est admin du groupe
+        $isAdmin = false;
+        $targetGroup = null;
+        foreach ($xml->group as $group) {
+            if ((string)$group['id'] === $groupId) {
+                $targetGroup = $group;
+                foreach ($group->members->member as $member) {
+                    if ((string)$member['user_id'] === $userId && (string)$member['role'] === 'admin') {
+                        $isAdmin = true;
+                        break;
+                    }
+                }
+                break;
+            }
+        }
 
-    // Trouver le groupe et vérifier les permissions
-    foreach ($xml->group as $g) {
-        if ((string)$g['id'] === $groupId) {
-            $group = $g;
-            
-            // Vérifier si l'utilisateur qui retire est admin
-            foreach ($g->members->member as $member) {
-                if ((string)$member['user_id'] === $removedBy && (string)$member['role'] === 'admin') {
-                    $isAdmin = true;
-                    break;
+        if (!$isAdmin) {
+            echo json_encode(['success' => false, 'message' => 'Vous devez être admin pour retirer des membres']);
+            exit;
+        }
+
+        // Vérifier que le membre n'est pas le créateur du groupe
+        if ((string)$targetGroup->created_by === $memberId) {
+            echo json_encode(['success' => false, 'message' => 'Vous ne pouvez pas retirer le créateur du groupe']);
+            exit;
+        }
+
+        // Retirer le membre
+        foreach ($targetGroup->members->member as $member) {
+            if ((string)$member['user_id'] === $memberId) {
+                unset($member[0]);
+                break;
+            }
+        }
+
+        $xml->asXML($groupsFile);
+        
+        echo json_encode(['success' => true, 'message' => 'Membre retiré avec succès']);
+        exit;
+    }
+    
+    // Modifier les informations du groupe
+    elseif (isset($input['action']) && $input['action'] === 'update_group') {
+        $groupId = $input['group_id'] ?? '';
+        $name = trim($input['name'] ?? '');
+        $description = trim($input['description'] ?? '');
+        $userId = $_SESSION['user_id'];
+        
+        if (empty($groupId) || empty($name)) {
+            echo json_encode(['success' => false, 'message' => 'ID du groupe et nom requis']);
+            exit;
+        }
+
+        if (strlen($name) > 100) {
+            echo json_encode(['success' => false, 'message' => 'Le nom du groupe est trop long (maximum 100 caractères)']);
+            exit;
+        }
+
+        // Vérifier que l'utilisateur est admin du groupe
+        $isAdmin = false;
+        $targetGroup = null;
+        foreach ($xml->group as $group) {
+            if ((string)$group['id'] === $groupId) {
+                $targetGroup = $group;
+                foreach ($group->members->member as $member) {
+                    if ((string)$member['user_id'] === $userId && (string)$member['role'] === 'admin') {
+                        $isAdmin = true;
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+
+        if (!$isAdmin) {
+            echo json_encode(['success' => false, 'message' => 'Vous devez être admin pour modifier le groupe']);
+            exit;
+        }
+
+        // Modifier les informations
+        $targetGroup->name = $name;
+        $targetGroup->description = $description;
+
+        $xml->asXML($groupsFile);
+        
+        echo json_encode(['success' => true, 'message' => 'Groupe modifié avec succès']);
+        exit;
+    }
+    
+    // Quitter le groupe
+    elseif (isset($input['action']) && $input['action'] === 'leave_group') {
+        $groupId = $input['group_id'] ?? '';
+        $userId = $_SESSION['user_id'];
+        
+        if (empty($groupId)) {
+            echo json_encode(['success' => false, 'message' => 'ID du groupe requis']);
+            exit;
+        }
+
+        $targetGroup = null;
+        $userRole = '';
+        $memberElement = null;
+
+        foreach ($xml->group as $group) {
+            if ((string)$group['id'] === $groupId) {
+                $targetGroup = $group;
+                foreach ($group->members->member as $member) {
+                    if ((string)$member['user_id'] === $userId) {
+                        $userRole = (string)$member['role'];
+                        $memberElement = $member;
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+
+        if (!$targetGroup || !$memberElement) {
+            echo json_encode(['success' => false, 'message' => 'Vous n\'êtes pas membre de ce groupe']);
+            exit;
+        }
+
+        // Vérifier que l'utilisateur n'est pas le seul admin
+        if ($userRole === 'admin') {
+            $adminCount = 0;
+            foreach ($targetGroup->members->member as $member) {
+                if ((string)$member['role'] === 'admin') {
+                    $adminCount++;
                 }
             }
-            break;
+            
+            if ($adminCount <= 1) {
+                echo json_encode(['success' => false, 'message' => 'Vous ne pouvez pas quitter le groupe car vous êtes le seul admin']);
+                exit;
+            }
         }
-    }
 
-    if (!$group) {
-        echo json_encode(['error' => 'Groupe non trouvé']);
+        // Quitter le groupe
+        unset($memberElement[0]);
+
+        $xml->asXML($groupsFile);
+        
+        echo json_encode(['success' => true, 'message' => 'Vous avez quitté le groupe']);
         exit;
     }
+    
+    // Supprimer le groupe
+    elseif (isset($input['action']) && $input['action'] === 'delete_group') {
+        $groupId = $input['group_id'] ?? '';
+        $userId = $_SESSION['user_id'];
+        
+        if (empty($groupId)) {
+            echo json_encode(['success' => false, 'message' => 'ID du groupe requis']);
+            exit;
+        }
 
-    if (!$isAdmin) {
-        echo json_encode(['error' => 'Vous devez être administrateur pour retirer des membres']);
+        $targetGroup = null;
+        $isAdmin = false;
+        $memberCount = 0;
+
+        foreach ($xml->group as $group) {
+            if ((string)$group['id'] === $groupId) {
+                $targetGroup = $group;
+                $memberCount = count($group->members->member);
+                foreach ($group->members->member as $member) {
+                    if ((string)$member['user_id'] === $userId && (string)$member['role'] === 'admin') {
+                        $isAdmin = true;
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+
+        if (!$targetGroup) {
+            echo json_encode(['success' => false, 'message' => 'Groupe non trouvé']);
+            exit;
+        }
+
+        if (!$isAdmin) {
+            echo json_encode(['success' => false, 'message' => 'Vous devez être admin pour supprimer le groupe']);
+            exit;
+        }
+
+        if ($memberCount > 1) {
+            echo json_encode(['success' => false, 'message' => 'Vous ne pouvez supprimer le groupe que s\'il est vide']);
+            exit;
+        }
+
+        // Supprimer le groupe
+        unset($targetGroup[0]);
+
+        $xml->asXML($groupsFile);
+        
+        echo json_encode(['success' => true, 'message' => 'Groupe supprimé avec succès']);
         exit;
-    }
-
-    // Retirer le membre
-    $memberFound = false;
-    foreach ($group->members->member as $member) {
-        if ((string)$member['user_id'] === $userId) {
-            unset($member[0]);
-            $memberFound = true;
-            break;
-        }
-    }
-
-    if ($memberFound) {
-        if ($xml->asXML($groupsFile)) {
-            echo json_encode(['success' => true, 'message' => 'Membre retiré avec succès']);
-        } else {
-            echo json_encode(['error' => 'Erreur lors de la sauvegarde']);
-        }
-    } else {
-        echo json_encode(['error' => 'Membre non trouvé']);
     }
 }
 
-else {
-    echo json_encode(['error' => 'Action non reconnue']);
-}
+echo json_encode(['success' => false, 'message' => 'Action non reconnue']);
 ?> 
