@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Affichage Contacts</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .section h3 {
+            margin-top: 0;
+            color: #128C7E;
+        }
+        .btn {
+            background: #128C7E;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #0d6b5f;
+        }
+        .btn-secondary {
+            background: #6c757d;
+        }
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .contact-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #ddd;
+            margin: 5px 0;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        .contact-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #128C7E;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+        .contact-info {
+            flex: 1;
+        }
+        .contact-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .contact-details {
+            font-size: 0.9em;
+            color: #666;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .debug-info {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 0.9em;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Test Affichage Contacts</h1>
+        
+        <div class="section">
+            <h3>📊 État de la Session</h3>
+            <button class="btn" onclick="checkSession()">Vérifier Session</button>
+            <div id="sessionInfo"></div>
+        </div>
+
+        <div class="section">
+            <h3>📞 Test Ajout Contact</h3>
+            <div class="form-group">
+                <label>Numéro de téléphone:</label>
+                <input type="text" id="testPhone" placeholder="Ex: 0123456789">
+            </div>
+            <div class="form-group">
+                <label>Surnom personnalisé (optionnel):</label>
+                <input type="text" id="testNickname" placeholder="Ex: Mon ami">
+            </div>
+            <button class="btn" onclick="testAddContact()">Ajouter Contact</button>
+            <div id="addResult"></div>
+        </div>
+
+        <div class="section">
+            <h3>👥 Contacts Actuels</h3>
+            <button class="btn" onclick="loadContacts()">Recharger Contacts</button>
+            <button class="btn btn-secondary" onclick="clearContacts()">Vider Affichage</button>
+            <div id="contactsList"></div>
+        </div>
+
+        <div class="section">
+            <h3>🔧 Debug Info</h3>
+            <button class="btn" onclick="getDebugInfo()">Obtenir Info Debug</button>
+            <div id="debugInfo" class="debug-info"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let contacts = [];
+
+        // Vérifier la session
+        function checkSession() {
+            const infoDiv = document.getElementById('sessionInfo');
+            infoDiv.innerHTML = '<div class="info">Vérification en cours...</div>';
+            
+            fetch('php/check_session.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.logged_in) {
+                        currentUser = data.user;
+                        infoDiv.innerHTML = `
+                            <div class="success">
+                                ✅ Session active<br>
+                                Utilisateur: ${data.user.name}<br>
+                                ID: ${data.user.id}<br>
+                                Email: ${data.user.email}
+                            </div>
+                        `;
+                    } else {
+                        infoDiv.innerHTML = '<div class="error">❌ Non connecté</div>';
+                    }
+                })
+                .catch(error => {
+                    infoDiv.innerHTML = `<div class="error">❌ Erreur: ${error.message}</div>`;
+                });
+        }
+
+        // Tester l'ajout de contact
+        function testAddContact() {
+            const phone = document.getElementById('testPhone').value.trim();
+            const nickname = document.getElementById('testNickname').value.trim();
+            const resultDiv = document.getElementById('addResult');
+            
+            if (!phone) {
+                resultDiv.innerHTML = '<div class="error">Veuillez entrer un numéro de téléphone</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="info">Recherche de l\'utilisateur...</div>';
+            
+            // D'abord chercher l'utilisateur
+            fetch('php/contacts.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    action: 'check_user',
+                    phone: phone
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Utilisateur trouvé: ${data.user_name}<br>
+                            Ajout en cours...
+                        </div>
+                    `;
+                    
+                    // Ajouter le contact
+                    return fetch('php/contacts.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            action: 'add_contact',
+                            user_id: data.user_id,
+                            nickname: nickname
+                        })
+                    });
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ ${data.message}</div>`;
+                    throw new Error('Utilisateur non trouvé');
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Contact ajouté avec succès!<br>
+                            ID du contact: ${data.contact_id}<br>
+                            Rechargement des contacts...
+                        </div>
+                    `;
+                    
+                    // Recharger les contacts après 1 seconde
+                    setTimeout(() => {
+                        loadContacts();
+                    }, 1000);
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Erreur: ${data.message}</div>`;
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                resultDiv.innerHTML = `<div class="error">❌ Erreur: ${error.message}</div>`;
+            });
+        }
+
+        // Charger les contacts
+        function loadContacts() {
+            const listDiv = document.getElementById('contactsList');
+            listDiv.innerHTML = '<div class="info">Chargement des contacts...</div>';
+            
+            fetch('php/contacts.php?action=get_contacts')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Réponse API contacts:', data);
+                    
+                    if (data.success) {
+                        contacts = data.contacts;
+                        displayContacts(contacts);
+                    } else {
+                        listDiv.innerHTML = `<div class="error">❌ Erreur: ${data.message}</div>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur chargement contacts:', error);
+                    listDiv.innerHTML = `<div class="error">❌ Erreur de chargement: ${error.message}</div>`;
+                });
+        }
+
+        // Afficher les contacts
+        function displayContacts(contactsList) {
+            const listDiv = document.getElementById('contactsList');
+            
+            if (contactsList.length === 0) {
+                listDiv.innerHTML = '<div class="info">📭 Aucun contact trouvé</div>';
+                return;
+            }
+            
+            let html = `<div class="success">📞 ${contactsList.length} contact(s) trouvé(s)</div>`;
+            
+            contactsList.forEach((contact, index) => {
+                const displayName = contact.nickname || contact.name;
+                html += `
+                    <div class="contact-item">
+                        <div class="contact-avatar">${displayName.charAt(0).toUpperCase()}</div>
+                        <div class="contact-info">
+                            <div class="contact-name">${displayName}</div>
+                            <div class="contact-details">
+                                Nom original: ${contact.name}<br>
+                                Téléphone: ${contact.phone || 'N/A'}<br>
+                                Email: ${contact.email || 'N/A'}<br>
+                                Contact ID: ${contact.contact_id}<br>
+                                Utilisateur ID: ${contact.id}<br>
+                                Favori: ${contact.favorite ? 'Oui' : 'Non'}<br>
+                                Créé le: ${contact.created_at || 'N/A'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            listDiv.innerHTML = html;
+        }
+
+        // Vider l'affichage des contacts
+        function clearContacts() {
+            document.getElementById('contactsList').innerHTML = '';
+        }
+
+        // Obtenir les informations de debug
+        function getDebugInfo() {
+            const debugDiv = document.getElementById('debugInfo');
+            debugDiv.innerHTML = 'Récupération des informations de debug...';
+            
+            // Vérifier le fichier contacts.xml
+            fetch('php/contacts.php?action=get_contacts')
+                .then(response => response.json())
+                .then(data => {
+                    let debugInfo = `=== DEBUG INFO ===\n`;
+                    debugInfo += `Timestamp: ${new Date().toISOString()}\n`;
+                    debugInfo += `Session utilisateur: ${currentUser ? currentUser.name : 'Non connecté'}\n`;
+                    debugInfo += `Contacts en mémoire: ${contacts.length}\n`;
+                    debugInfo += `Réponse API: ${JSON.stringify(data, null, 2)}\n`;
+                    
+                    debugDiv.innerHTML = debugInfo;
+                })
+                .catch(error => {
+                    debugDiv.innerHTML = `Erreur debug: ${error.message}`;
+                });
+        }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            checkSession();
+        });
+    </script>
+</body>
+</html> 

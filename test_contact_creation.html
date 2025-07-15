@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Création et Affichage des Contacts</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        .test-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .test-section h3 {
+            color: #128C7E;
+            margin-bottom: 15px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .contact-preview {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .btn-test {
+            background: #128C7E;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn-test:hover {
+            background: #0d6b5f;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Test - Création et Affichage des Contacts</h1>
+        
+        <div class="test-section">
+            <h3>📋 Instructions de Test</h3>
+            <div class="status info">
+                <strong>Objectif :</strong> Vérifier que lorsqu'un utilisateur connecté crée un contact dans l'onglet contact, ce contact s'affiche automatiquement en bas de la liste.
+            </div>
+            
+            <div class="status success">
+                <strong>✅ Fonctionnalités implémentées :</strong>
+                <ul>
+                    <li>Recherche d'utilisateur par numéro de téléphone</li>
+                    <li>Ajout de contact avec surnom personnalisé</li>
+                    <li>Rechargement automatique de la liste</li>
+                    <li>Affichage du nouveau contact en bas avec animation</li>
+                    <li>Style spécial pour les nouveaux contacts</li>
+                    <li>Tri intelligent (favoris en premier, puis par date)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔍 Test de Recherche d'Utilisateur</h3>
+            <p>Entrez un numéro de téléphone pour rechercher un utilisateur :</p>
+            <input type="text" id="testPhone" placeholder="Ex: 774123456" style="padding: 8px; margin: 10px 0; width: 200px;">
+            <button class="btn-test" onclick="testSearchUser()">🔍 Rechercher</button>
+            <div id="searchResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>➕ Test d'Ajout de Contact</h3>
+            <p>Ajoutez un contact de test :</p>
+            <button class="btn-test" onclick="testAddContact('2')">Ajouter Mariama Coly (ID: 2)</button>
+            <button class="btn-test" onclick="testAddContact('3')">Ajouter Kabyr Diop (ID: 3)</button>
+            <button class="btn-test" onclick="testAddContact('4')">Ajouter Diarra Ndiaye (ID: 4)</button>
+            <div id="addResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📞 Test d'Affichage des Contacts</h3>
+            <p>Vérifiez que les contacts s'affichent correctement :</p>
+            <button class="btn-test" onclick="testLoadContacts()">🔄 Recharger les contacts</button>
+            <div id="contactsDisplay"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🎯 Test Complet</h3>
+            <p>Testez le processus complet :</p>
+            <button class="btn-test" onclick="runCompleteTest()">🚀 Lancer le test complet</button>
+            <div id="completeTestResult"></div>
+        </div>
+    </div>
+
+    <script>
+        // Simuler une session utilisateur
+        const currentUser = {
+            id: '1',
+            name: 'Narou Sagne'
+        };
+
+        // Test de recherche d'utilisateur
+        async function testSearchUser() {
+            const phone = document.getElementById('testPhone').value.trim();
+            const resultDiv = document.getElementById('searchResult');
+            
+            if (!phone) {
+                resultDiv.innerHTML = '<div class="status error">Veuillez entrer un numéro de téléphone</div>';
+                return;
+            }
+
+            resultDiv.innerHTML = '<div class="status info">🔍 Recherche en cours...</div>';
+
+            try {
+                const response = await fetch('php/contacts.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'check_user', phone: phone })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="status success">
+                            <strong>✅ Utilisateur trouvé !</strong><br>
+                            Nom: ${data.user_name}<br>
+                            Téléphone: ${data.user_phone}<br>
+                            Email: ${data.user_email}<br>
+                            ID: ${data.user_id}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="status error">❌ ${data.message}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<div class="status error">❌ Erreur de connexion</div>';
+            }
+        }
+
+        // Test d'ajout de contact
+        async function testAddContact(userId) {
+            const resultDiv = document.getElementById('addResult');
+            resultDiv.innerHTML = '<div class="status info">➕ Ajout du contact en cours...</div>';
+
+            try {
+                const response = await fetch('php/contacts.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        action: 'add_contact', 
+                        user_id: userId, 
+                        nickname: `Test Contact ${Date.now()}` 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="status success">
+                            <strong>✅ Contact ajouté avec succès !</strong><br>
+                            Contact ID: ${data.contact_id}<br>
+                            <small>Le contact devrait maintenant apparaître dans la liste principale.</small>
+                        </div>
+                    `;
+                    
+                    // Recharger automatiquement les contacts après 1 seconde
+                    setTimeout(() => {
+                        testLoadContacts();
+                    }, 1000);
+                } else {
+                    resultDiv.innerHTML = `<div class="status error">❌ ${data.message}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<div class="status error">❌ Erreur de connexion</div>';
+            }
+        }
+
+        // Test de chargement des contacts
+        async function testLoadContacts() {
+            const resultDiv = document.getElementById('contactsDisplay');
+            resultDiv.innerHTML = '<div class="status info">📞 Chargement des contacts...</div>';
+
+            try {
+                const response = await fetch('php/contacts.php?action=get_contacts');
+                const data = await response.json();
+                
+                if (data.success) {
+                    if (data.contacts.length === 0) {
+                        resultDiv.innerHTML = '<div class="status info">📭 Aucun contact trouvé</div>';
+                    } else {
+                        let html = `<div class="status success"><strong>📞 ${data.contacts.length} contact(s) trouvé(s) :</strong></div>`;
+                        
+                        data.contacts.forEach((contact, index) => {
+                            const isNew = index === data.contacts.length - 1;
+                            const newClass = isNew ? 'new-contact' : '';
+                            
+                            html += `
+                                <div class="contact-preview ${newClass}">
+                                    <strong>${contact.nickname || contact.name}</strong><br>
+                                    📱 ${contact.phone}<br>
+                                    📧 ${contact.email}<br>
+                                    ${contact.favorite ? '⭐ Favori' : ''}<br>
+                                    <small>Ajouté le: ${new Date(contact.created_at).toLocaleString()}</small>
+                                    ${isNew ? '<br><span style="color: green;">🆕 Nouveau contact</span>' : ''}
+                                </div>
+                            `;
+                        });
+                        
+                        resultDiv.innerHTML = html;
+                    }
+                } else {
+                    resultDiv.innerHTML = `<div class="status error">❌ ${data.message}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<div class="status error">❌ Erreur de connexion</div>';
+            }
+        }
+
+        // Test complet
+        async function runCompleteTest() {
+            const resultDiv = document.getElementById('completeTestResult');
+            resultDiv.innerHTML = '<div class="status info">🚀 Démarrage du test complet...</div>';
+
+            try {
+                // Étape 1: Charger les contacts actuels
+                resultDiv.innerHTML += '<div class="status info">📞 Étape 1: Chargement des contacts actuels...</div>';
+                const response1 = await fetch('php/contacts.php?action=get_contacts');
+                const data1 = await response1.json();
+                const initialCount = data1.success ? data1.contacts.length : 0;
+                
+                // Étape 2: Ajouter un contact de test
+                resultDiv.innerHTML += '<div class="status info">➕ Étape 2: Ajout d\'un contact de test...</div>';
+                const response2 = await fetch('php/contacts.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        action: 'add_contact', 
+                        user_id: '2', 
+                        nickname: `Test Complet ${Date.now()}` 
+                    })
+                });
+                const data2 = await response2.json();
+                
+                if (!data2.success) {
+                    resultDiv.innerHTML += `<div class="status error">❌ Échec de l'ajout: ${data2.message}</div>`;
+                    return;
+                }
+                
+                // Étape 3: Vérifier que le contact a été ajouté
+                resultDiv.innerHTML += '<div class="status info">✅ Étape 3: Vérification de l\'ajout...</div>';
+                setTimeout(async () => {
+                    const response3 = await fetch('php/contacts.php?action=get_contacts');
+                    const data3 = await response3.json();
+                    const finalCount = data3.success ? data3.contacts.length : 0;
+                    
+                    if (finalCount > initialCount) {
+                        resultDiv.innerHTML += `
+                            <div class="status success">
+                                <strong>🎉 Test réussi !</strong><br>
+                                Contacts avant: ${initialCount}<br>
+                                Contacts après: ${finalCount}<br>
+                                Nouveau contact ajouté: ${finalCount - initialCount}
+                            </div>
+                        `;
+                    } else {
+                        resultDiv.innerHTML += '<div class="status error">❌ Le contact n\'a pas été ajouté</div>';
+                    }
+                }, 1000);
+                
+            } catch (error) {
+                resultDiv.innerHTML += '<div class="status error">❌ Erreur lors du test complet</div>';
+            }
+        }
+
+        // Charger les contacts au démarrage
+        window.addEventListener('load', () => {
+            testLoadContacts();
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Upload</title>
+</head>
+<body>
+    <form action="php/test_message.php" method="POST" enctype="multipart/form-data">
+        <input type="file" name="file">
+        <input type="hidden" name="sender_id" value="1">
+        <input type="hidden" name="receiver_id" value="2">
+        <button type="submit">Uploader</button>
+    </form>
+</body>
+</html>

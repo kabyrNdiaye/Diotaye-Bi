@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Client - Chat Platform</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Client - Chat Platform</h1>
+    
+    <div class="test-section info">
+        <h3>Informations du navigateur</h3>
+        <p>User Agent: <span id="userAgent"></span></p>
+        <p>URL actuelle: <span id="currentUrl"></span></p>
+        <p>Protocole: <span id="protocol"></span></p>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 1: Vérification du serveur</h3>
+        <button onclick="testServer()">Tester le serveur</button>
+        <div id="serverResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 2: Vérification de la session</h3>
+        <button onclick="testSession()">Tester la session</button>
+        <div id="sessionResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 3: Test de connexion</h3>
+        <form id="loginForm">
+            <label>Téléphone: <input type="text" id="phone" placeholder="774123456" value="774123456"></label><br>
+            <label>Mot de passe: <input type="password" id="password" placeholder="password" value="password"></label><br>
+            <button type="button" onclick="testLogin()">Tester la connexion</button>
+        </form>
+        <div id="loginResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 4: Test des fichiers PHP</h3>
+        <button onclick="testFiles()">Tester tous les fichiers</button>
+        <div id="filesResult"></div>
+    </div>
+
+    <script>
+        // Afficher les informations du navigateur
+        document.getElementById('userAgent').textContent = navigator.userAgent;
+        document.getElementById('currentUrl').textContent = window.location.href;
+        document.getElementById('protocol').textContent = window.location.protocol;
+
+        // Test du serveur
+        async function testServer() {
+            const resultDiv = document.getElementById('serverResult');
+            resultDiv.innerHTML = '<p>Test en cours...</p>';
+            
+            try {
+                const response = await fetch('test_server.php');
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <h4>✅ Serveur OK</h4>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ Erreur serveur</h4>
+                        <p>${error.message}</p>
+                        <pre>${error.stack}</pre>
+                    </div>
+                `;
+            }
+        }
+
+        // Test de session
+        async function testSession() {
+            const resultDiv = document.getElementById('sessionResult');
+            resultDiv.innerHTML = '<p>Test en cours...</p>';
+            
+            try {
+                const response = await fetch('php/check_session.php');
+                const data = await response.json();
+                
+                if (data.logged_in) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h4>✅ Session active</h4>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="info">
+                            <h4>ℹ️ Aucune session active</h4>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ Erreur session</h4>
+                        <p>${error.message}</p>
+                        <pre>${error.stack}</pre>
+                    </div>
+                `;
+            }
+        }
+
+        // Test de connexion
+        async function testLogin() {
+            const resultDiv = document.getElementById('loginResult');
+            const phone = document.getElementById('phone').value;
+            const password = document.getElementById('password').value;
+            
+            resultDiv.innerHTML = '<p>Test en cours...</p>';
+            
+            try {
+                const formData = new FormData();
+                formData.append('action', 'login');
+                formData.append('phone', phone);
+                formData.append('password', password);
+                
+                const response = await fetch('php/login.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h4>✅ Connexion réussie</h4>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ Erreur de connexion</h4>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ Erreur réseau</h4>
+                        <p>${error.message}</p>
+                        <pre>${error.stack}</pre>
+                    </div>
+                `;
+            }
+        }
+
+        // Test de tous les fichiers
+        async function testFiles() {
+            const resultDiv = document.getElementById('filesResult');
+            resultDiv.innerHTML = '<p>Test en cours...</p>';
+            
+            const files = [
+                'php/check_session.php',
+                'php/login.php',
+                'php/chats.php',
+                'php/contacts.php',
+                'php/groups.php',
+                'php/files.php',
+                'php/settings.php'
+            ];
+            
+            let results = '';
+            
+            for (const file of files) {
+                try {
+                    const response = await fetch(file + '?action=test');
+                    const data = await response.json();
+                    results += `<div class="success">✅ ${file}: OK</div>`;
+                } catch (error) {
+                    results += `<div class="error">❌ ${file}: ${error.message}</div>`;
+                }
+            }
+            
+            resultDiv.innerHTML = results;
+        }
+
+        // Tests automatiques au chargement
+        window.addEventListener('load', function() {
+            setTimeout(testServer, 1000);
+            setTimeout(testSession, 2000);
+        });
+    </script>
+</body>
+</html> 

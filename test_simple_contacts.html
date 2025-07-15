@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Simple Contacts</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        .contact-item {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #007bff;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .debug {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Test Simple des Contacts</h1>
+    
+    <div class="test-section">
+        <h2>📋 Vérification de la session</h2>
+        <button class="btn btn-primary" onclick="checkSession()">Vérifier la session</button>
+        <div id="sessionResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📞 Chargement des contacts</h2>
+        <button class="btn btn-primary" onclick="loadContacts()">Charger les contacts</button>
+        <div id="contactsResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>➕ Ajouter un contact de test</h2>
+        <p>Ajoutez un contact pour voir s'il apparaît dans la liste :</p>
+        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+            <input type="text" id="testPhone" placeholder="Numéro de téléphone" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            <input type="text" id="testNickname" placeholder="Surnom (optionnel)" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            <button class="btn btn-primary" onclick="addTestContact()">Ajouter</button>
+        </div>
+        <div id="addResult"></div>
+    </div>
+
+    <script>
+        function checkSession() {
+            const resultDiv = document.getElementById('sessionResult');
+            resultDiv.innerHTML = '<div class="info">Vérification de la session...</div>';
+            
+            fetch('php/check_session.php')
+            .then(response => response.json())
+            .then(data => {
+                if (data.logged_in) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Session active<br>
+                            Utilisateur: ${data.user.name}<br>
+                            ID: ${data.user.id}<br>
+                            Email: ${data.user.email}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = '<div class="error">❌ Aucune session active</div>';
+                }
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `<div class="error">❌ Erreur: ${error.message}</div>`;
+            });
+        }
+        
+        function loadContacts() {
+            const resultDiv = document.getElementById('contactsResult');
+            resultDiv.innerHTML = '<div class="info">Chargement des contacts...</div>';
+            
+            fetch('php/contacts.php?action=get_contacts')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Réponse API contacts:', data);
+                
+                if (data.success) {
+                    const contacts = data.contacts;
+                    
+                    if (contacts.length === 0) {
+                        resultDiv.innerHTML = '<div class="info">📭 Aucun contact trouvé</div>';
+                    } else {
+                        let html = '<div class="success">✅ ' + contacts.length + ' contact(s) trouvé(s)</div>';
+                        
+                        contacts.forEach(contact => {
+                            html += `
+                                <div class="contact-item">
+                                    <strong>${contact.nickname || contact.name}</strong><br>
+                                    📱 ${contact.phone}<br>
+                                    📧 ${contact.email}<br>
+                                    🆔 Contact ID: ${contact.contact_id}<br>
+                                    ⭐ Favori: ${contact.favorite ? 'Oui' : 'Non'}<br>
+                                    📅 Ajouté le: ${new Date(contact.created_at).toLocaleDateString()}
+                                </div>
+                            `;
+                        });
+                        
+                        resultDiv.innerHTML = html;
+                    }
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Erreur API: ${data.message}</div>`;
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                resultDiv.innerHTML = `<div class="error">❌ Erreur: ${error.message}</div>`;
+            });
+        }
+        
+        function addTestContact() {
+            const phone = document.getElementById('testPhone').value.trim();
+            const nickname = document.getElementById('testNickname').value.trim();
+            const resultDiv = document.getElementById('addResult');
+            
+            if (!phone) {
+                resultDiv.innerHTML = '<div class="error">Veuillez entrer un numéro de téléphone</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="info">Recherche de l\'utilisateur...</div>';
+            
+            // D'abord rechercher l'utilisateur
+            fetch('php/contacts.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    action: 'check_user',
+                    phone: phone
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Ajouter le contact
+                    const requestBody = {
+                        action: 'add_contact',
+                        user_id: data.user_id
+                    };
+                    
+                    if (nickname) {
+                        requestBody.nickname = nickname;
+                    }
+                    
+                    return fetch('php/contacts.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(requestBody)
+                    });
+                } else {
+                    throw new Error(data.message);
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const nicknameText = nickname ? ` avec le surnom "${nickname}"` : '';
+                    resultDiv.innerHTML = `<div class="success">✅ Contact ajouté avec succès${nicknameText} !</div>`;
+                    
+                    // Vider les champs
+                    document.getElementById('testPhone').value = '';
+                    document.getElementById('testNickname').value = '';
+                    
+                    // Recharger automatiquement les contacts après 1 seconde
+                    setTimeout(() => {
+                        loadContacts();
+                    }, 1000);
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Erreur: ${data.message}</div>`;
+                }
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `<div class="error">❌ Erreur: ${error.message}</div>`;
+            });
+        }
+        
+        // Charger automatiquement au démarrage
+        window.addEventListener('DOMContentLoaded', function() {
+            checkSession();
+            setTimeout(() => {
+                loadContacts();
+            }, 500);
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<messages>
+    <message id="1">
+        <sender_id>1</sender_id>
+        <receiver_id>2</receiver_id>
+        <group_id/>
+        <content>Bonjour Mr Fall fera cours ou pas ?</content>
+        <timestamp>2024-07-13T01:57:00Z</timestamp>
+        <type>text</type>
+        <status>read</status>
+        <file_id/>
+    </message>
+    <message id="2">
+        <sender_id>1</sender_id>
+        <receiver_id>2</receiver_id>
+        <group_id/>
+        <content>Salut, comment vas-tu ?</content>
+        <timestamp>2024-07-13T02:25:33Z</timestamp>
+        <type>text</type>
+        <status>read</status>
+        <file_id/>
+    </message>
+    <message id="3">
+        <sender_id>1</sender_id>
+        <receiver_id>2</receiver_id>
+        <group_id/>
+        <content>Voici mon CV que je desire envoyer</content>
+        <timestamp>2024-07-13T15:01:06Z</timestamp>
+        <type>text</type>
+        <status>delivered</status>
+        <file_id/>
+    </message>
+    <message id="4">
+        <sender_id>2</sender_id>
+        <receiver_id>1</receiver_id>
+        <group_id/>
+        <content>Salut ! Oui, il fera cours demain à 10h</content>
+        <timestamp>2024-07-13T15:05:00Z</timestamp>
+        <type>text</type>
+        <status>read</status>
+        <file_id/>
+    </message>
+    <message id="5">
+        <sender_id>1</sender_id>
+        <receiver_id/>
+        <group_id>1</group_id>
+        <content>Bonjour à tous ! Qui a les notes du dernier cours ?</content>
+        <timestamp>2024-07-13T16:00:00Z</timestamp>
+        <type>text</type>
+        <status>sent</status>
+        <file_id/>
+    </message>
+<message id="6"><sender_id>3</sender_id><receiver_id>1</receiver_id><group_id/><content>Bonjour</content><timestamp>2025-07-14T21:20:13+02:00</timestamp><type>text</type><status>sent</status><file_id/></message><message id="7"><sender_id>3</sender_id><receiver_id>1</receiver_id><group_id/><content>namenalla</content><timestamp>2025-07-14T21:20:25+02:00</timestamp><type>text</type><status>sent</status><file_id/></message><message id="8"><sender_id>3</sender_id><receiver_id>5</receiver_id><group_id/><content>on doit faire cours oubien? waala xamo</content><timestamp>2025-07-14T21:24:58+02:00</timestamp><type>text</type><status>sent</status><file_id/></message><message id="9"><sender_id>3</sender_id><receiver_id>1</receiver_id><group_id/><content>coucou</content><timestamp>2025-07-14T21:35:34+02:00</timestamp><type>text</type><status>sent</status><file_id/></message><message id="10"><sender_id>3</sender_id><receiver_id>4</receiver_id><group_id/><content>moytoull dé</content><timestamp>2025-07-14T21:35:59+02:00</timestamp><type>text</type><status>sent</status><file_id/></message><message id="11"><sender_id>3</sender_id><receiver_id>5</receiver_id><group_id/><content>bonsoir</content><timestamp>2025-07-15T00:40:36+02:00</timestamp><type>text</type><status>sent</status><file_id/></message><message id="12"><sender_id>3</sender_id><receiver_id>1</receiver_id><group_id/><content>Bonjour</content><timestamp>2025-07-15T01:03:54+02:00</timestamp><type>text</type><status>sent</status><file_id/></message></messages>

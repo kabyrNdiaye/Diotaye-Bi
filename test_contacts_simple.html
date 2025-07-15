@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Contacts - Version Simplifiée</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        .test-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            display: flex;
+            gap: 20px;
+        }
+        .sidebar {
+            width: 400px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .main-content {
+            flex: 1;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        .status-bar {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .debug-info {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .btn-test {
+            background: #128C7E;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn-test:hover {
+            background: #0d6b5f;
+        }
+        .contact-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .contact-item:hover {
+            background: #f8f9fa;
+        }
+        .contact-item.new-contact {
+            background: #E8F5E8;
+            border-left: 4px solid #28a745;
+            animation: fadeInUp 0.5s ease forwards;
+        }
+        .contact-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #128C7E;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+        .contact-info {
+            flex: 1;
+        }
+        .contact-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .contact-details {
+            font-size: 12px;
+            color: #666;
+        }
+        .contact-actions {
+            display: flex;
+            gap: 5px;
+        }
+        .action-btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .action-btn.edit {
+            background: #007bff;
+            color: white;
+        }
+        .action-btn.favorite {
+            background: #ffc107;
+            color: #212529;
+        }
+        .action-btn.delete {
+            background: #dc3545;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header" style="padding: 20px; background: #128C7E; color: white;">
+                <h2>📞 Test Contacts</h2>
+                <div>Utilisateur: Narou Sagne (ID: 1)</div>
+            </div>
+
+            <div class="search-container" style="padding: 15px;">
+                <input type="text" class="search-bar" placeholder="Rechercher des contacts..." id="searchBar">
+            </div>
+
+            <div class="nav-tabs" style="padding: 0 15px;">
+                <button class="nav-tab active" data-tab="contacts">
+                    <i class="fas fa-address-book"></i> Contacts
+                </button>
+            </div>
+
+            <!-- Contacts List -->
+            <div class="contact-list" id="contactsList">
+                <div class="contacts-header" style="padding: 15px;">
+                    <button class="add-contact-btn" id="showAddContactFormBtn" type="button">
+                        <i class="fas fa-plus"></i> Ajouter un contact
+                    </button>
+                </div>
+                
+                <!-- Formulaire d'ajout de contact -->
+                <div id="addContactForm" style="display:none; background: #F0F2F5; padding: 15px; margin: 15px; border-radius: 8px;">
+                    <h4 style="margin: 0 0 10px 0; color: #128C7E;">Rechercher un utilisateur</h4>
+                    <div style="margin-bottom: 10px;">
+                        <input type="text" id="searchContactPhone" placeholder="Numéro de téléphone" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="button" class="btn btn-primary" id="searchContactBtn">
+                            <i class="fas fa-search"></i> Rechercher
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="cancelAddContactBtn">
+                            <i class="fas fa-times"></i> Annuler
+                        </button>
+                    </div>
+                    <div id="searchContactResults" style="margin-top: 10px;"></div>
+                </div>
+                
+                <div id="contactsListContainer">
+                    <div class="loading" style="text-align: center; padding: 20px;">
+                        <div class="spinner"></div>
+                        Chargement des contacts...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="status-bar">
+                <h3>🧪 Test de Fonctionnalité</h3>
+                <p>Cette page teste l'ajout et l'affichage des contacts en bas de liste.</p>
+            </div>
+
+            <div class="debug-info">
+                <strong>Debug Info:</strong><br>
+                <div id="debugInfo">Initialisation...</div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <h4>🔧 Actions de Test</h4>
+                <button class="btn-test" onclick="testLoadContacts()">🔄 Recharger les contacts</button>
+                <button class="btn-test" onclick="testAddContact('2')">➕ Ajouter Mariama (ID: 2)</button>
+                <button class="btn-test" onclick="testAddContact('3')">➕ Ajouter Kabyr (ID: 3)</button>
+                <button class="btn-test" onclick="testAddContact('4')">➕ Ajouter Diarra (ID: 4)</button>
+                <button class="btn-test" onclick="clearContacts()">🗑️ Vider les contacts</button>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <h4>📊 État Actuel</h4>
+                <div id="currentState">Chargement...</div>
+            </div>
+
+            <div>
+                <h4>📝 Logs</h4>
+                <div id="logs" style="background: #f8f9fa; padding: 15px; border-radius: 5px; max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let contacts = [];
+        let currentUser = { id: '1', name: 'Narou Sagne' };
+
+        // Fonction de log
+        function log(message) {
+            const logsDiv = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            logsDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+            console.log(message);
+        }
+
+        // Fonction de debug
+        function updateDebugInfo() {
+            const debugDiv = document.getElementById('debugInfo');
+            debugDiv.innerHTML = `
+                Utilisateur: ${currentUser.name} (ID: ${currentUser.id})<br>
+                Contacts chargés: ${contacts.length}<br>
+                Dernière mise à jour: ${new Date().toLocaleTimeString()}
+            `;
+        }
+
+        // Fonction d'état
+        function updateCurrentState() {
+            const stateDiv = document.getElementById('currentState');
+            if (contacts.length === 0) {
+                stateDiv.innerHTML = '<div style="color: orange;">⚠️ Aucun contact chargé</div>';
+            } else {
+                stateDiv.innerHTML = `
+                    <div style="color: green;">✅ ${contacts.length} contact(s) chargé(s)</div>
+                    <div style="margin-top: 10px;">
+                        ${contacts.map((contact, index) => `
+                            <div style="border: 1px solid #ddd; padding: 10px; margin: 5px 0; border-radius: 5px;">
+                                <strong>${index + 1}.</strong> ${contact.nickname || contact.name} 
+                                (ID: ${contact.id}) - Créé: ${new Date(contact.created_at).toLocaleString()}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+        }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Application initialisée');
+            initializeEventListeners();
+            loadContacts();
+        });
+
+        // Initialiser les événements
+        function initializeEventListeners() {
+            // Recherche
+            document.getElementById('searchBar').addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                filterContacts(searchTerm);
+            });
+
+            // Formulaire d'ajout de contact
+            const showBtn = document.getElementById('showAddContactFormBtn');
+            const addContactForm = document.getElementById('addContactForm');
+            const cancelBtn = document.getElementById('cancelAddContactBtn');
+            const searchBtn = document.getElementById('searchContactBtn');
+
+            showBtn.addEventListener('click', function() {
+                addContactForm.style.display = 'block';
+                showBtn.style.display = 'none';
+                log('Formulaire d\'ajout affiché');
+            });
+
+            cancelBtn.addEventListener('click', function() {
+                addContactForm.style.display = 'none';
+                showBtn.style.display = 'block';
+                document.getElementById('searchContactResults').innerHTML = '';
+                log('Formulaire d\'ajout masqué');
+            });
+
+            searchBtn.addEventListener('click', function() {
+                searchContactUser();
+            });
+
+            // Recherche avec Entrée
+            document.getElementById('searchContactPhone').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchContactUser();
+                }
+            });
+        }
+
+        // Charger les contacts
+        function loadContacts() {
+            log('Chargement des contacts...');
+            
+            fetch('php/contacts.php?action=get_contacts')
+                .then(response => response.json())
+                .then(data => {
+                    log(`Réponse API: ${JSON.stringify(data)}`);
+                    if (data.success) {
+                        contacts = data.contacts;
+                        log(`Contacts chargés: ${contacts.length}`);
+                        displayContacts(contacts);
+                        updateDebugInfo();
+                        updateCurrentState();
+                    } else {
+                        log(`Erreur API: ${data.message}`);
+                        document.getElementById('contactsListContainer').innerHTML = 
+                            '<div class="error">Erreur: ' + data.message + '</div>';
+                    }
+                })
+                .catch(error => {
+                    log(`Erreur de chargement: ${error.message}`);
+                    document.getElementById('contactsListContainer').innerHTML = 
+                        '<div class="error">Erreur de chargement</div>';
+                });
+        }
+
+        // Afficher les contacts
+        function displayContacts(contactsList) {
+            log(`Affichage de ${contactsList.length} contacts`);
+            const container = document.getElementById('contactsListContainer');
+            
+            if (contactsList.length === 0) {
+                container.innerHTML = '<div class="no-items" style="text-align: center; padding: 20px; color: #666;">📭 Aucun contact ajouté</div>';
+                return;
+            }
+
+            // Trier les contacts : favoris en premier, puis par date de création
+            const sortedContacts = [...contactsList].sort((a, b) => {
+                if (a.favorite && !b.favorite) return -1;
+                if (!a.favorite && b.favorite) return 1;
+                const dateA = new Date(a.created_at || 0);
+                const dateB = new Date(b.created_at || 0);
+                return dateA - dateB;
+            });
+
+            log(`Contacts triés: ${sortedContacts.length}`);
+
+            let html = '';
+            sortedContacts.forEach((contact, index) => {
+                const displayName = contact.nickname || contact.name;
+                const statusText = contact.online ? 'En ligne' : 'Hors ligne';
+                const statusClass = contact.online ? 'online' : 'offline';
+                
+                html += `
+                    <div class="contact-item" data-contact-id="${contact.contact_id || contact.id}">
+                        <div class="contact-avatar">
+                            ${displayName.charAt(0).toUpperCase()}
+                        </div>
+                        <div class="contact-info">
+                            <div class="contact-name">${displayName}</div>
+                            <div class="contact-details">
+                                <div>📱 ${contact.phone}</div>
+                                <div>📧 ${contact.email}</div>
+                                <div class="${statusClass}">${statusText}</div>
+                                ${contact.favorite ? '<div>⭐ Favori</div>' : ''}
+                            </div>
+                        </div>
+                        <div class="contact-actions">
+                            <button class="action-btn edit" onclick="editContact('${contact.contact_id || contact.id}')" title="Modifier">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="action-btn ${contact.favorite ? 'favorite' : ''}" onclick="toggleFavorite('${contact.contact_id || contact.id}')" title="Favori">
+                                <i class="fas fa-star"></i>
+                            </button>
+                            <button class="action-btn delete" onclick="deleteContact('${contact.contact_id || contact.id}')" title="Supprimer">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+            log('Contacts affichés avec succès');
+        }
+
+        // Rechercher un utilisateur
+        function searchContactUser() {
+            const phone = document.getElementById('searchContactPhone').value.trim();
+            const resultsDiv = document.getElementById('searchContactResults');
+            
+            if (!phone) {
+                resultsDiv.innerHTML = '<div style="color: #e74c3c; padding: 10px;">Veuillez entrer un numéro de téléphone</div>';
+                return;
+            }
+
+            log(`Recherche d'utilisateur avec le numéro: ${phone}`);
+            resultsDiv.innerHTML = '<div style="text-align: center; padding: 10px;"><i class="fas fa-spinner fa-spin"></i> Recherche en cours...</div>';
+
+            fetch('php/contacts.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'check_user', phone: phone })
+            })
+            .then(response => response.json())
+            .then(data => {
+                log(`Résultat recherche: ${JSON.stringify(data)}`);
+                if (data.success) {
+                    resultsDiv.innerHTML = `
+                        <div style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 5px; padding: 10px; margin-top: 10px;">
+                            <div style="font-weight: bold; color: #155724;">Utilisateur trouvé !</div>
+                            <div style="margin: 5px 0;">Nom: ${data.user_name}</div>
+                            <div style="margin: 5px 0;">Téléphone: ${data.user_phone}</div>
+                            <div style="margin: 5px 0;">Email: ${data.user_email}</div>
+                            
+                            <div style="margin-top: 15px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Surnom personnalisé (optionnel):</label>
+                                <input type="text" id="customNickname" placeholder="Entrez un surnom personnalisé" 
+                                       style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px;">
+                                <div style="display: flex; gap: 8px;">
+                                    <button type="button" class="btn btn-success" onclick="addContactFromSearch('${data.user_id}')">
+                                        <i class="fas fa-plus"></i> Ajouter aux contacts
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" onclick="cancelAddContact()">
+                                        <i class="fas fa-times"></i> Annuler
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `<div style="color: #e74c3c; padding: 10px;">${data.message}</div>`;
+                }
+            })
+            .catch(error => {
+                log(`Erreur recherche: ${error.message}`);
+                resultsDiv.innerHTML = '<div style="color: #e74c3c; padding: 10px;">Erreur lors de la recherche</div>';
+            });
+        }
+
+        // Ajouter un contact depuis la recherche
+        function addContactFromSearch(userId) {
+            const customNickname = document.getElementById('customNickname')?.value.trim() || '';
+            log(`Ajout de contact: userId=${userId}, nickname="${customNickname}"`);
+            
+            const resultsDiv = document.getElementById('searchContactResults');
+            resultsDiv.innerHTML = '<div style="text-align: center; padding: 10px;"><i class="fas fa-spinner fa-spin"></i> Ajout du contact en cours...</div>';
+
+            fetch('php/contacts.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'add_contact',
+                    user_id: userId,
+                    nickname: customNickname
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                log(`Réponse ajout contact: ${JSON.stringify(data)}`);
+                if (data.success) {
+                    // Masquer le formulaire
+                    document.getElementById('addContactForm').style.display = 'none';
+                    document.getElementById('showAddContactFormBtn').style.display = 'block';
+                    
+                    // Message de succès
+                    resultsDiv.innerHTML = `
+                        <div style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 5px; padding: 15px; color: #155724;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-check-circle" style="font-size: 20px; color: #28a745;"></i>
+                                <div>
+                                    <div style="font-weight: bold; margin-bottom: 5px;">✅ Contact ajouté avec succès !</div>
+                                    <div style="font-size: 14px;">Le contact apparaîtra dans votre liste ci-dessous.</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Recharger les contacts
+                    setTimeout(() => {
+                        loadContacts();
+                        
+                        // Marquer le nouveau contact
+                        setTimeout(() => {
+                            const contactsContainer = document.getElementById('contactsListContainer');
+                            const lastContact = contactsContainer.querySelector('.contact-item:last-child');
+                            if (lastContact) {
+                                lastContact.classList.add('new-contact');
+                                lastContact.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                
+                                setTimeout(() => {
+                                    lastContact.classList.remove('new-contact');
+                                }, 3000);
+                            }
+                        }, 100);
+                    }, 500);
+                    
+                    // Masquer le message après 4 secondes
+                    setTimeout(() => {
+                        resultsDiv.innerHTML = '';
+                    }, 4000);
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 5px; padding: 15px; color: #721c24;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-exclamation-triangle" style="font-size: 20px; color: #dc3545;"></i>
+                                <div>
+                                    <div style="font-weight: bold; margin-bottom: 5px;">❌ Erreur lors de l'ajout</div>
+                                    <div style="font-size: 14px;">${data.message}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                log(`Erreur ajout contact: ${error.message}`);
+                resultsDiv.innerHTML = `
+                    <div style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 5px; padding: 15px; color: #721c24;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 20px; color: #dc3545;"></i>
+                            <div>
+                                <div style="font-weight: bold; margin-bottom: 5px;">❌ Erreur de connexion</div>
+                                <div style="font-size: 14px;">Impossible de se connecter au serveur. Veuillez réessayer.</div>
+                            </div>
+                        </div>
+                    `;
+            });
+        }
+
+        // Annuler l'ajout de contact
+        function cancelAddContact() {
+            document.getElementById('searchContactResults').innerHTML = '';
+        }
+
+        // Filtrer les contacts
+        function filterContacts(searchTerm) {
+            const filtered = contacts.filter(contact => 
+                (contact.name && contact.name.toLowerCase().includes(searchTerm)) ||
+                (contact.nickname && contact.nickname.toLowerCase().includes(searchTerm)) ||
+                (contact.phone && contact.phone.includes(searchTerm))
+            );
+            displayContacts(filtered);
+        }
+
+        // Fonctions de test
+        function testLoadContacts() {
+            log('Test: Rechargement des contacts');
+            loadContacts();
+        }
+
+        function testAddContact(userId) {
+            log(`Test: Ajout de contact avec userId=${userId}`);
+            addContactFromSearch(userId);
+        }
+
+        function clearContacts() {
+            log('Test: Vider les contacts');
+            contacts = [];
+            displayContacts([]);
+            updateDebugInfo();
+            updateCurrentState();
+        }
+
+        function editContact(contactId) {
+            log(`Test: Édition du contact ${contactId}`);
+            alert(`Édition du contact ${contactId} - Fonctionnalité à implémenter`);
+        }
+
+        function toggleFavorite(contactId) {
+            log(`Test: Toggle favori pour le contact ${contactId}`);
+            alert(`Toggle favori pour le contact ${contactId} - Fonctionnalité à implémenter`);
+        }
+
+        function deleteContact(contactId) {
+            log(`Test: Suppression du contact ${contactId}`);
+            if (confirm('Voulez-vous vraiment supprimer ce contact ?')) {
+                alert(`Suppression du contact ${contactId} - Fonctionnalité à implémenter`);
+            }
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Bouton Contact</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-container {
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        .form-container {
+            background: #F0F2F5;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: none;
+        }
+        .form-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            flex: 1;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test du Bouton Contact</h1>
+    
+    <div class="test-container">
+        <h2>Test de l'affichage/masquage du formulaire</h2>
+        
+        <!-- Bouton pour afficher le formulaire -->
+        <button class="btn btn-primary" id="showAddContactFormBtn">
+            <i class="fas fa-plus"></i> Ajouter un contact
+        </button>
+        
+        <!-- Formulaire d'ajout de contact -->
+        <div class="form-container" id="addContactForm">
+            <h4 style="margin: 0 0 10px 0; color: #128C7E;">Rechercher un utilisateur</h4>
+            <div class="form-row">
+                <input type="text" id="searchContactName" placeholder="Nom de l'utilisateur">
+                <span style="color: #666;">ou</span>
+                <input type="text" id="searchContactPhone" placeholder="Numéro de téléphone">
+            </div>
+            <div class="form-row">
+                <button class="btn btn-primary" id="searchContactBtn">
+                    <i class="fas fa-search"></i> Rechercher
+                </button>
+                <button class="btn btn-secondary" id="cancelAddContactBtn">
+                    <i class="fas fa-times"></i> Annuler
+                </button>
+            </div>
+            <div id="searchContactResults"></div>
+        </div>
+        
+        <div id="status"></div>
+    </div>
+
+    <script>
+        // Fonction pour afficher le formulaire
+        function showForm() {
+            const addContactForm = document.getElementById('addContactForm');
+            const showBtn = document.getElementById('showAddContactFormBtn');
+            
+            if (addContactForm && showBtn) {
+                addContactForm.style.display = 'block';
+                showBtn.style.display = 'none';
+                // Vider les champs
+                const nameInput = document.getElementById('searchContactName');
+                const phoneInput = document.getElementById('searchContactPhone');
+                const resultsDiv = document.getElementById('searchContactResults');
+                if (nameInput) nameInput.value = '';
+                if (phoneInput) phoneInput.value = '';
+                if (resultsDiv) resultsDiv.innerHTML = '';
+                
+                updateStatus('Formulaire affiché', 'success');
+            }
+        }
+        
+        // Fonction pour masquer le formulaire
+        function hideForm() {
+            const addContactForm = document.getElementById('addContactForm');
+            const showBtn = document.getElementById('showAddContactFormBtn');
+            
+            if (addContactForm && showBtn) {
+                addContactForm.style.display = 'none';
+                showBtn.style.display = 'block';
+                updateStatus('Formulaire masqué - Bouton réapparu', 'success');
+            }
+        }
+        
+        // Fonction pour mettre à jour le statut
+        function updateStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+        
+        // Fonction pour rechercher un utilisateur
+        function searchContactUser() {
+            const name = document.getElementById('searchContactName').value.trim();
+            const phone = document.getElementById('searchContactPhone').value.trim();
+            const resultsDiv = document.getElementById('searchContactResults');
+            
+            if (!name && !phone) {
+                resultsDiv.innerHTML = '<div style="color: #e74c3c; padding: 10px;">Veuillez entrer un nom ou un numéro de téléphone</div>';
+                return;
+            }
+            
+            resultsDiv.innerHTML = '<div style="text-align: center; padding: 10px;"><i class="fas fa-spinner fa-spin"></i> Recherche en cours...</div>';
+            
+            // Simulation d'une recherche réussie
+            setTimeout(() => {
+                resultsDiv.innerHTML = `
+                    <div style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 5px; padding: 10px; margin-top: 10px;">
+                        <div style="font-weight: bold; color: #155724;">Utilisateur trouvé !</div>
+                        <div style="margin: 5px 0;">Nom: ${name || 'Non spécifié'}</div>
+                        <div style="margin: 5px 0;">Téléphone: ${phone || 'Non spécifié'}</div>
+                        <button type="button" class="btn btn-success" onclick="addContactFromSearch('123')" style="margin-top: 10px;">
+                            <i class="fas fa-plus"></i> Ajouter aux contacts
+                        </button>
+                    </div>
+                `;
+            }, 1000);
+        }
+        
+        // Fonction pour ajouter un contact
+        function addContactFromSearch(userId) {
+            updateStatus('Contact ajouté avec succès !', 'success');
+            
+            // Masquer le formulaire
+            setTimeout(() => {
+                hideForm();
+            }, 2000);
+        }
+        
+        // Initialiser les événements
+        document.addEventListener('DOMContentLoaded', function() {
+            const showBtn = document.getElementById('showAddContactFormBtn');
+            const cancelBtn = document.getElementById('cancelAddContactBtn');
+            const searchBtn = document.getElementById('searchContactBtn');
+            
+            if (showBtn) {
+                showBtn.onclick = showForm;
+            }
+            
+            if (cancelBtn) {
+                cancelBtn.onclick = hideForm;
+            }
+            
+            if (searchBtn) {
+                searchBtn.onclick = searchContactUser;
+            }
+            
+            // Permettre la recherche avec Entrée
+            const nameInput = document.getElementById('searchContactName');
+            const phoneInput = document.getElementById('searchContactPhone');
+            
+            if (nameInput) {
+                nameInput.onkeypress = function(e) {
+                    if (e.key === 'Enter') {
+                        searchContactUser();
+                    }
+                };
+            }
+            
+            if (phoneInput) {
+                phoneInput.onkeypress = function(e) {
+                    if (e.key === 'Enter') {
+                        searchContactUser();
+                    }
+                };
+            }
+            
+            updateStatus('Test prêt - Cliquez sur "Ajouter un contact"', 'success');
+        });
+    </script>
+</body>
+</html> 

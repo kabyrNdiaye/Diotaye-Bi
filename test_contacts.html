@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Onglet Contact</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 3px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        button {
+            padding: 8px 16px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        input {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test de l'Onglet Contact</h1>
+    
+    <div class="test-section">
+        <h2>Test de recherche d'utilisateur</h2>
+        <p>Testez la recherche d'utilisateurs par nom ou numéro de téléphone :</p>
+        
+        <div>
+            <label>Nom :</label>
+            <input type="text" id="testName" placeholder="Ex: Narou Sagne">
+        </div>
+        <div>
+            <label>OU Téléphone :</label>
+            <input type="text" id="testPhone" placeholder="Ex: 774123456">
+        </div>
+        <button onclick="testSearchUser()">Tester la recherche</button>
+        <div id="searchResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test d'ajout de contact</h2>
+        <p>Testez l'ajout d'un contact (nécessite d'être connecté) :</p>
+        <input type="text" id="testUserId" placeholder="ID utilisateur (ex: 2)">
+        <button onclick="testAddContact()">Tester l'ajout</button>
+        <div id="addResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test de récupération des contacts</h2>
+        <p>Récupérer la liste des contacts :</p>
+        <button onclick="testGetContacts()">Récupérer les contacts</button>
+        <div id="contactsResult"></div>
+    </div>
+
+    <script>
+        function testSearchUser() {
+            const name = document.getElementById('testName').value.trim();
+            const phone = document.getElementById('testPhone').value.trim();
+            const resultDiv = document.getElementById('searchResult');
+            
+            if (!name && !phone) {
+                resultDiv.innerHTML = '<div class="error">Veuillez entrer un nom ou un numéro de téléphone</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div>Recherche en cours...</div>';
+            
+            fetch('php/contacts.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    action: 'check_user',
+                    name: name,
+                    phone: phone
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <strong>Utilisateur trouvé !</strong><br>
+                            ID: ${data.user_id}<br>
+                            Nom: ${name || 'Non spécifié'}<br>
+                            Téléphone: ${phone || 'Non spécifié'}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">${data.message}</div>`;
+                }
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `<div class="error">Erreur: ${error.message}</div>`;
+            });
+        }
+        
+        function testAddContact() {
+            const userId = document.getElementById('testUserId').value.trim();
+            const resultDiv = document.getElementById('addResult');
+            
+            if (!userId) {
+                resultDiv.innerHTML = '<div class="error">Veuillez entrer un ID utilisateur</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div>Ajout en cours...</div>';
+            
+            fetch('php/contacts.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    action: 'add_contact',
+                    user_id: userId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <strong>Contact ajouté avec succès !</strong><br>
+                            Contact ID: ${data.contact_id}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">${data.message}</div>`;
+                }
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `<div class="error">Erreur: ${error.message}</div>`;
+            });
+        }
+        
+        function testGetContacts() {
+            const resultDiv = document.getElementById('contactsResult');
+            resultDiv.innerHTML = '<div>Récupération en cours...</div>';
+            
+            fetch('php/contacts.php?action=get_contacts')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const contacts = data.contacts;
+                    let html = '<div class="success"><strong>Contacts récupérés :</strong><br>';
+                    if (contacts.length === 0) {
+                        html += 'Aucun contact trouvé';
+                    } else {
+                        contacts.forEach(contact => {
+                            html += `
+                                <div style="margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 3px;">
+                                    <strong>${contact.name}</strong><br>
+                                    ID: ${contact.id}<br>
+                                    Contact ID: ${contact.contact_id || 'N/A'}<br>
+                                    Téléphone: ${contact.phone}<br>
+                                    Surnom: ${contact.nickname || 'Aucun'}<br>
+                                    Favori: ${contact.favorite ? 'Oui' : 'Non'}<br>
+                                    En ligne: ${contact.online ? 'Oui' : 'Non'}
+                                </div>
+                            `;
+                        });
+                    }
+                    html += '</div>';
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">${data.message}</div>`;
+                }
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `<div class="error">Erreur: ${error.message}</div>`;
+            });
+        }
+    </script>
+</body>
+</html> 
