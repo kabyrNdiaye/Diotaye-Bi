@@ -1995,10 +1995,8 @@ function manageGroupMembers(groupId, event) {
         event.stopPropagation();
     }
     
-    if (currentGroup && currentGroup.id === groupId) {
-        // Afficher une interface de gestion des membres
-        alert('Utilisez les boutons dans les détails du groupe pour gérer les membres');
-    }
+    // Ouvrir directement la modale de gestion des membres
+    openManageMembersModal(groupId);
 }
 
 // Formater une date
@@ -2012,3 +2010,138 @@ function formatDate(dateString) {
         minute: '2-digit'
     });
 }
+
+// Fonction pour créer la modale si elle n'existe pas
+function ensureManageMembersModalExists() {
+    if (!document.getElementById('manageMembersModal')) {
+        const modal = document.createElement('div');
+        modal.id = 'manageMembersModal';
+        modal.className = 'modal';
+        modal.style.display = 'none';
+        modal.innerHTML = `
+          <div class="modal-content" style="max-width:500px; position:relative;">
+            <span class="close-btn" onclick="closeManageMembersModal()">&times;</span>
+            <h3>Gérer les membres du groupe</h3>
+            <div id="membersList"></div>
+            <hr>
+            <h4>Ajouter un membre</h4>
+            <div id="addMemberList"></div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+    }
+}
+
+function openManageMembersModal(groupId) {
+    // S'assurer que la modale existe
+    ensureManageMembersModalExists();
+    
+    // Charger les membres actuels
+    fetch(`php/groups.php?action=get_group_details&group_id=${groupId}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                const group = data.group;
+                let html = '';
+                group.members.forEach(member => {
+                    html += `<div style='margin-bottom:6px; padding:8px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;'>
+                        <span>${member.name} ${member.is_admin ? '👑' : ''}</span>
+                        ${group.can_manage && !member.is_admin && member.id !== group.created_by ? 
+                            `<button onclick="removeMemberModal('${group.id}', '${member.id}')" style='margin-left:10px; background:#dc3545; color:white; border:none; padding:5px 10px; border-radius:3px; cursor:pointer;'>Retirer</button>` : 
+                            '<span style="color: #666;">' + (member.is_admin ? '(Admin)' : '(Membre)') + '</span>'}
+                    </div>`;
+                });
+                document.getElementById('membersList').innerHTML = html;
+            }
+        })
+        .catch(error => {
+            console.error('Erreur chargement membres:', error);
+            document.getElementById('membersList').innerHTML = '<div style="color: red;">Erreur de chargement des membres</div>';
+        });
+
+    // Charger les contacts disponibles à ajouter
+    fetch(`php/groups.php?action=get_available_contacts&group_id=${groupId}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                let html = '';
+                if (data.contacts.length === 0) {
+                    html = "<em>Aucun contact à ajouter</em>";
+                } else {
+                    data.contacts.forEach(contact => {
+                        html += `<div style='margin-bottom:6px; padding:8px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;'>
+                            <span>${contact.name} (${contact.phone})</span>
+                            <button onclick="addMemberModal('${groupId}', '${contact.id}')" style='background:#28a745; color:white; border:none; padding:5px 10px; border-radius:3px; cursor:pointer;'>Ajouter</button>
+                        </div>`;
+                    });
+                }
+                document.getElementById('addMemberList').innerHTML = html;
+            }
+        })
+        .catch(error => {
+            console.error('Erreur chargement contacts:', error);
+            document.getElementById('addMemberList').innerHTML = '<div style="color: red;">Erreur de chargement des contacts</div>';
+        });
+
+    document.getElementById('manageMembersModal').style.display = 'flex';
+}
+
+function closeManageMembersModal() {
+    document.getElementById('manageMembersModal').style.display = 'none';
+}
+
+// Version modale des fonctions d'ajout/retrait (rafraîchit la modale)
+function addMemberModal(groupId, memberId) {
+    const addData = {
+        action: 'add_member',
+        group_id: groupId,
+        member_id: memberId
+    };
+    fetch('php/groups.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(addData)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            openManageMembersModal(groupId);
+        } else {
+            alert(data.message);
+        }
+    });
+}
+
+function removeMemberModal(groupId, memberId) {
+    if (!confirm('Retirer ce membre du groupe ?')) return;
+    fetch('php/groups.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({action: 'remove_member', group_id: groupId, member_id: memberId})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            openManageMembersModal(groupId);
+        } else {
+            alert(data.message);
+        }
+    });
+}
+
+// Ajoute le bouton dans displayGroupDetails
+const oldDisplayGroupDetails = displayGroupDetails;
+displayGroupDetails = function(group) {
+    oldDisplayGroupDetails(group);
+    if (group.can_manage) {
+        const mainContent = document.querySelector('.main-content .group-details .group-header');
+        if (mainContent && !document.getElementById('btnManageMembers')) {
+            const btn = document.createElement('button');
+            btn.id = 'btnManageMembers';
+            btn.className = 'btn btn-info';
+            btn.innerHTML = '<i class="fas fa-users-cog"></i> Gérer les membres';
+            btn.onclick = function() { openManageMembersModal(group.id); };
+            mainContent.appendChild(btn);
+        }
+    }
+};
