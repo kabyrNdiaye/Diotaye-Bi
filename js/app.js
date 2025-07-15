@@ -172,7 +172,14 @@ function displayChats(chatsList) {
         return;
     }
 
-    chatsList.forEach(chat => {
+    // Trier par date du dernier message (plus ancien en haut, plus récent en bas)
+    const sortedChats = [...chatsList].sort((a, b) => {
+        const ta = a.last_time ? new Date(a.last_time).getTime() : 0;
+        const tb = b.last_time ? new Date(b.last_time).getTime() : 0;
+        return ta - tb;
+    });
+
+    sortedChats.forEach(chat => {
         const chatElement = createChatElement(chat);
         container.appendChild(chatElement);
     });
@@ -2145,3 +2152,78 @@ displayGroupDetails = function(group) {
         }
     }
 };
+
+// Ajout de l'écouteur pour le bouton Ajouter discussion
+function initializeDiscussionAddButton() {
+    const btn = document.getElementById('addDiscussionBtn');
+    if (btn) {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            showAddDiscussionModal();
+        });
+    }
+}
+
+// Appeler cette fonction à la fin de initializeEventListeners
+const oldInit = initializeEventListeners;
+initializeEventListeners = function() {
+    oldInit();
+    initializeDiscussionAddButton();
+}
+
+// Afficher la modale de sélection discussion
+function showAddDiscussionModal() {
+    // Afficher les contacts
+    const contactsList = document.getElementById('discussionContactsList');
+    if (contactsList) {
+        let html = '';
+        if (contacts.length === 0) {
+            html = '<div style="color:#888;">Aucun contact ajouté</div>';
+        } else {
+            contacts.forEach(contact => {
+                html += `<div class='contact-item' style='cursor:pointer; padding:8px; border-bottom:1px solid #eee;' onclick='startChatFromModal(${JSON.stringify(contact)})'>
+                    <span>${contact.name || contact.nickname || contact.phone}</span>
+                </div>`;
+            });
+        }
+        contactsList.innerHTML = html;
+    }
+    // Afficher les groupes
+    const groupsList = document.getElementById('discussionGroupsList');
+    if (groupsList) {
+        let html = '';
+        if (groups.length === 0) {
+            html = '<div style="color:#888;">Aucun groupe</div>';
+        } else {
+            groups.forEach(group => {
+                html += `<div class='group-item' style='cursor:pointer; padding:8px; border-bottom:1px solid #eee;' onclick='openGroupFromModal(${JSON.stringify(group)})'>
+                    <span>${group.name}</span>
+                </div>`;
+            });
+        }
+        groupsList.innerHTML = html;
+    }
+    document.getElementById('addDiscussionModal').style.display = 'flex';
+}
+
+// Fermer la modale (utilise déjà closeModal)
+
+// Démarrer une discussion depuis la modale
+function startChatFromModal(contactObj) {
+    closeModal('addDiscussionModal');
+    // Trouver le contact dans la liste réelle (pour éviter les problèmes de référence)
+    const c = contacts.find(ct => ct.id == contactObj.id || ct.contact_id == contactObj.id);
+    if (c) {
+        startChat(c);
+    }
+}
+
+// Ouvrir la gestion du groupe depuis la modale
+function openGroupFromModal(groupObj) {
+    closeModal('addDiscussionModal');
+    // Trouver le groupe dans la liste réelle
+    const g = groups.find(gr => gr.id == groupObj.id);
+    if (g) {
+        openGroup(g);
+    }
+}

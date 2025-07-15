@@ -47,7 +47,12 @@
                 </button>
             </div>
 
-            <!-- Discussions List -->
+            <!-- Discussions Header + List -->
+            <div class="discussions-header" style="padding: 12px; background: #fff; border-bottom: 1px solid #E9EDEF;">
+                <button class="add-discussion-btn btn btn-primary" id="addDiscussionBtn" type="button" style="width:100%;">
+                    <i class="fas fa-plus"></i> Ajouter une discussion
+                </button>
+            </div>
             <div class="contact-list" id="discussionsList">
                 <div class="loading">
                     <div class="spinner"></div>
@@ -211,6 +216,22 @@
             <div class="form-group">
                 <button class="btn btn-primary" onclick="saveContactEdit()">Sauvegarder</button>
                 <button class="btn btn-secondary" onclick="closeModal('editContactModal')">Annuler</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal pour ajouter une discussion -->
+    <div class="modal" id="addDiscussionModal" style="display:none;">
+        <div class="modal-content" style="max-width:500px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Démarrer une discussion</h3>
+                <button class="close-btn" onclick="closeModal('addDiscussionModal')">&times;</button>
+            </div>
+            <div>
+                <h4>Mes contacts</h4>
+                <div id="discussionContactsList" style="margin-bottom:20px;"></div>
+                <h4>Mes groupes</h4>
+                <div id="discussionGroupsList"></div>
             </div>
         </div>
     </div>

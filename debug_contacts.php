@@ -159,12 +159,12 @@ if (file_exists($contactsFile) && file_exists($usersFile)) {
             $contactUserId = (string)$contact->contact_user_id;
             $userContacts[$contactUserId] = [
                 'contact_id' => (string)$contact['id'],
-                'nickname' => (string)$contact->nickname,
-                'favorite' => (string)$contact->favorite === 'true',
+                    'nickname' => (string)$contact->nickname,
+                    'favorite' => (string)$contact->favorite === 'true',
                 'blocked' => (string)$contact->blocked === 'true',
                 'created_at' => (string)$contact->created_at,
-                'last_contact' => (string)$contact->last_contact
-            ];
+                    'last_contact' => (string)$contact->last_contact
+                ];
         }
     }
     
@@ -208,7 +208,7 @@ if (file_exists($contactsFile) && file_exists($usersFile)) {
     
     if (empty($contacts)) {
         echo "<div style='color: red;'>❌ Aucun contact retourné par l'API</div>";
-    } else {
+        } else {
         echo "<div style='color: green;'>✅ " . count($contacts) . " contact(s) retourné(s) par l'API</div>";
     }
     echo "</div>";
@@ -269,7 +269,7 @@ if (isset($_POST['add_contact'])) {
             
             // Recharger la page pour voir les changements
             echo "<script>setTimeout(() => window.location.reload(), 2000);</script>";
-        } else {
+} else {
             echo "<div style='color: red; padding: 10px; background: #f8d7da; border-radius: 5px; margin: 10px 0;'>❌ Utilisateur non trouvé</div>";
         }
     }

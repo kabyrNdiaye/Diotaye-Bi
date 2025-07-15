@@ -1058,3 +1058,23 @@ body {
         transform: translateY(0);
     }
 }
+
+.discussions-header {
+    background: #fff;
+    padding: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+.add-discussion-btn {
+    width: 100%;
+    font-size: 15px;
+    padding: 10px 0;
+    border-radius: 8px;
+    background: var(--whatsapp-green);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.add-discussion-btn:hover {
+    background: var(--whatsapp-dark-green);
+}

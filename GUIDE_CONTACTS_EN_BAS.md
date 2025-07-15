@@ -151,11 +151,11 @@ setTimeout(() => {
     <user_id>1</user_id>
     <contact_user_id>2</contact_user_id>
     <nickname>Surnom Personnalisé</nickname>
-    <favorite>false</favorite>
-    <blocked>false</blocked>
+        <favorite>false</favorite>
+        <blocked>false</blocked>
     <created_at>2024-01-15T10:30:00Z</created_at>
     <last_contact>2024-01-15T10:30:00Z</last_contact>
-</contact>
+    </contact>
 ```
 
 ### Format Utilisateur (users.xml)
