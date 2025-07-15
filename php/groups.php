@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action'])) {
                 if (!$isMember) {
                     echo json_encode(['success' => false, 'message' => 'Vous n\'êtes pas membre de ce groupe']);
                     exit;
-                }
+            }
 
             $group = [
                 'id' => (string)$g['id'],
@@ -295,7 +295,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = (int)$group['id'];
             if ($id > $maxId) {
                 $maxId = $id;
-            }
+        }
     }
     $newId = $maxId + 1;
 

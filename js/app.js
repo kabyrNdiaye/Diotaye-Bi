@@ -102,21 +102,23 @@ function switchTab(tabName) {
     document.getElementById('contactsList').style.display = 'none';
     document.getElementById('groupsList').style.display = 'none';
     document.getElementById('filesList').style.display = 'none';
+    // Masquer le header du bouton discussion partout
+    const discussionsHeader = document.querySelector('.discussions-header');
+    if (discussionsHeader) discussionsHeader.style.display = 'none';
     // Désactiver tous les onglets
     document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
     // Afficher la bonne section
     if (tabName === 'discussions') {
         document.getElementById('discussionsList').style.display = '';
         document.querySelector('.nav-tab[data-tab="discussions"]').classList.add('active');
+        // Afficher le header du bouton discussion
+        if (discussionsHeader) discussionsHeader.style.display = '';
         displayDiscussions(contacts);
     } else if (tabName === 'contacts') {
         document.getElementById('contactsList').style.display = '';
         document.querySelector('.nav-tab[data-tab="contacts"]').classList.add('active');
         displayContacts(contacts);
-        // Réinitialiser les événements du formulaire
-        setTimeout(() => {
-            initializeContactFormEvents();
-        }, 100);
+        setTimeout(() => { initializeContactFormEvents(); }, 100);
     } else if (tabName === 'groups') {
         document.getElementById('groupsList').style.display = '';
         document.querySelector('.nav-tab[data-tab="groups"]').classList.add('active');
@@ -172,11 +174,11 @@ function displayChats(chatsList) {
         return;
     }
 
-    // Trier par date du dernier message (plus ancien en haut, plus récent en bas)
+    // Trier par date du dernier message (plus récent en haut, plus ancien en bas)
     const sortedChats = [...chatsList].sort((a, b) => {
         const ta = a.last_time ? new Date(a.last_time).getTime() : 0;
         const tb = b.last_time ? new Date(b.last_time).getTime() : 0;
-        return ta - tb;
+        return tb - ta; // Inversé pour avoir le plus récent en haut
     });
 
     sortedChats.forEach(chat => {
