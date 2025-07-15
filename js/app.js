@@ -9,6 +9,7 @@ let groups = [];
 document.addEventListener('DOMContentLoaded', function() {
     checkSession();
     initializeEventListeners();
+    startMessagePolling();
 });
 
 // Vérifier la session utilisateur
@@ -589,23 +590,36 @@ function filterGroups(searchTerm) {
 // Ouvrir un chat
 function openChat(chat) {
     currentChat = chat;
-    // Chercher le contact à jour dans la liste (par id ou contact_id)
-    let upToDateContact = contacts.find(c => c.id === chat.id || c.contact_id === chat.id);
-    // Si c'est un contact, utiliser le nickname, sinon le nom du groupe
-    let displayName = (upToDateContact && upToDateContact.nickname) ? upToDateContact.nickname : chat.name;
+    
+    // Afficher l'interface de chat
+    document.getElementById('welcomeMessage').style.display = 'none';
     document.getElementById('chatHeader').style.display = 'flex';
+    document.getElementById('messagesArea').style.display = 'block';
+    document.getElementById('messageInputContainer').style.display = 'flex';
+    
+    // Mettre à jour l'en-tête du chat
+    const displayName = chat.nickname || chat.name;
     document.getElementById('chatContactName').textContent = displayName;
     document.getElementById('chatContactAvatar').textContent = displayName.charAt(0).toUpperCase();
     document.getElementById('chatContactStatus').textContent = chat.online ? 'En ligne' : 'Hors ligne';
-    document.getElementById('welcomeMessage').style.display = 'none';
-    document.getElementById('messagesArea').style.display = 'block';
-    document.getElementById('messageInputContainer').style.display = 'flex';
+    
+    // Charger les messages
     loadMessages(chat.id, chat.type || 'contact');
-    document.querySelectorAll('.contact-item, .group-item').forEach(item => {
+    
+    // Marquer les messages comme lus
+    if (chat.type === 'contact') {
+        markMessagesAsRead(chat.id, 'contact');
+    }
+    
+    // Mettre à jour l'état actif dans la liste
+    document.querySelectorAll('.contact-item').forEach(item => {
         item.classList.remove('active');
     });
-    if (event && event.currentTarget) {
-        event.currentTarget.classList.add('active');
+    
+    // Trouver et activer l'élément correspondant
+    const chatElement = document.querySelector(`[data-chat-id="${chat.id}"]`);
+    if (chatElement) {
+        chatElement.classList.add('active');
     }
 }
 
@@ -722,6 +736,14 @@ function sendMessage() {
             // Scroll vers le bas
             const messagesArea = document.getElementById('messagesArea');
             messagesArea.scrollTop = messagesArea.scrollHeight;
+            
+            // Actualiser la liste des discussions pour montrer le dernier message
+            loadChats();
+            
+            // Marquer les messages comme lus si c'est un contact
+            if (currentChat.type === 'contact') {
+                markMessagesAsRead(currentChat.id, 'contact');
+            }
         } else {
             alert(data.error || data.message || 'Erreur lors de l\'envoi du message');
         }
@@ -731,6 +753,71 @@ function sendMessage() {
         alert('Erreur lors de l\'envoi du message');
     });
 }
+
+// Marquer les messages comme lus
+function markMessagesAsRead(chatId, chatType) {
+    const formData = new URLSearchParams();
+    formData.append('action', 'mark_as_read');
+    formData.append('user_id', currentUser.id);
+    
+    if (chatType === 'contact') {
+        formData.append('contact_id', chatId);
+    } else if (chatType === 'group') {
+        formData.append('group_id', chatId);
+    }
+
+    fetch('php/messages.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: formData.toString()
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Actualiser la liste des discussions pour refléter les changements de statut
+            loadChats();
+        }
+    })
+    .catch(error => {
+        console.error('Erreur marquage lu:', error);
+    });
+}
+
+// Système de polling pour vérifier les nouveaux messages
+let messagePollingInterval = null;
+
+function startMessagePolling() {
+    // Arrêter le polling existant
+    if (messagePollingInterval) {
+        clearInterval(messagePollingInterval);
+    }
+    
+    // Démarrer le nouveau polling (vérifier toutes les 5 secondes)
+    messagePollingInterval = setInterval(() => {
+        // Actualiser la liste des discussions
+        loadChats();
+        
+        // Si un chat est ouvert, vérifier les nouveaux messages
+        if (currentChat) {
+            loadMessages(currentChat.id, currentChat.type);
+        }
+    }, 5000);
+}
+
+function stopMessagePolling() {
+    if (messagePollingInterval) {
+        clearInterval(messagePollingInterval);
+        messagePollingInterval = null;
+    }
+}
+
+// Démarrer le polling au chargement de la page
+document.addEventListener('DOMContentLoaded', function() {
+    // ... existing code ...
+    startMessagePolling();
+});
 
 // Démarrer un chat avec un contact
 function startChat(contact) {

@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Système Messages</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f0f0;
+        }
+        
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+        }
+        
+        .btn-success {
+            background: #28a745;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+        }
+        
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .message-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 10px 0;
+            background: #f9f9f9;
+        }
+        
+        .message-item {
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 5px;
+            background: white;
+            border-left: 4px solid #007bff;
+        }
+        
+        .message-item.sent {
+            border-left-color: #28a745;
+            text-align: right;
+        }
+        
+        .message-item.received {
+            border-left-color: #007bff;
+        }
+        
+        .message-time {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .message-status {
+            font-size: 12px;
+            color: #28a745;
+        }
+        
+        .chat-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .chat-section {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        
+        .chat-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-radius: 5px;
+            cursor: pointer;
+            border-left: 3px solid #007bff;
+        }
+        
+        .chat-item:hover {
+            background: #e9ecef;
+        }
+        
+        .chat-item.active {
+            background: #007bff;
+            color: white;
+        }
+        
+        .unread-badge {
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Test Système Messages</h1>
+        <p>Cette page teste le système complet de messages : envoi, réception, marquage comme lu, et actualisation automatique.</p>
+        
+        <div id="status"></div>
+        
+        <h3>🔧 Tests de base</h3>
+        <button class="btn" onclick="testSession()">Vérifier Session</button>
+        <button class="btn" onclick="testLoadChats()">Charger Discussions</button>
+        <button class="btn" onclick="testLoadContacts()">Charger Contacts</button>
+        
+        <div class="chat-list">
+            <div class="chat-section">
+                <h4>📱 Discussions</h4>
+                <div id="chatsList">Chargement...</div>
+            </div>
+            
+            <div class="chat-section">
+                <h4>👥 Contacts</h4>
+                <div id="contactsList">Chargement...</div>
+            </div>
+        </div>
+        
+        <h3>💬 Test Messages</h3>
+        <div>
+            <label>Destinataire (ID):</label>
+            <input type="text" id="receiverId" placeholder="ID du contact" style="padding: 5px; margin: 5px;">
+        </div>
+        <div>
+            <label>Message:</label>
+            <input type="text" id="messageContent" placeholder="Votre message" style="padding: 5px; margin: 5px; width: 300px;">
+        </div>
+        <button class="btn btn-success" onclick="testSendMessage()">Envoyer Message</button>
+        <button class="btn" onclick="testLoadMessages()">Charger Messages</button>
+        <button class="btn" onclick="testMarkAsRead()">Marquer comme Lu</button>
+        
+        <h4>Messages récents:</h4>
+        <div id="messagesList" class="message-list">Aucun message</div>
+        
+        <h3>🔄 Test Polling</h3>
+        <button class="btn" onclick="startPolling()">Démarrer Polling</button>
+        <button class="btn btn-danger" onclick="stopPolling()">Arrêter Polling</button>
+        <div id="pollingStatus" class="status info">Polling arrêté</div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let pollingInterval = null;
+        let selectedChat = null;
+        
+        // Vérifier la session
+        function testSession() {
+            addStatus('Vérification de la session...', 'info');
+            
+            fetch('php/check_session.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.logged_in) {
+                        currentUser = data.user;
+                        addStatus(`✅ Connecté: ${data.user.name} (ID: ${data.user.id})`, 'success');
+                        testLoadChats();
+                        testLoadContacts();
+                    } else {
+                        addStatus('❌ Non connecté - Redirection vers login', 'error');
+                        window.location.href = 'login.html';
+                    }
+                })
+                .catch(error => {
+                    addStatus(`❌ Erreur session: ${error.message}`, 'error');
+                });
+        }
+        
+        // Charger les discussions
+        function testLoadChats() {
+            addStatus('Chargement des discussions...', 'info');
+            
+            fetch('php/chats.php?action=get_chats')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayChats(data.chats);
+                        addStatus(`✅ ${data.chats.length} discussions chargées`, 'success');
+                    } else {
+                        addStatus(`❌ Erreur: ${data.message}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    addStatus(`❌ Erreur chargement: ${error.message}`, 'error');
+                });
+        }
+        
+        // Afficher les discussions
+        function displayChats(chats) {
+            const container = document.getElementById('chatsList');
+            container.innerHTML = '';
+            
+            if (chats.length === 0) {
+                container.innerHTML = '<p>Aucune discussion</p>';
+                return;
+            }
+            
+            chats.forEach(chat => {
+                const div = document.createElement('div');
+                div.className = 'chat-item';
+                div.onclick = () => selectChat(chat);
+                div.innerHTML = `
+                    <strong>${chat.name}</strong> (${chat.type})
+                    ${chat.unread_count > 0 ? `<span class="unread-badge">${chat.unread_count}</span>` : ''}
+                    <br>
+                    <small>${chat.last_message}</small>
+                    <br>
+                    <small class="message-time">${formatTime(chat.last_time)}</small>
+                `;
+                container.appendChild(div);
+            });
+        }
+        
+        // Charger les contacts
+        function testLoadContacts() {
+            addStatus('Chargement des contacts...', 'info');
+            
+            fetch('php/contacts.php?action=get_contacts')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayContacts(data.contacts);
+                        addStatus(`✅ ${data.contacts.length} contacts chargés`, 'success');
+                    } else {
+                        addStatus(`❌ Erreur: ${data.message}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    addStatus(`❌ Erreur chargement: ${error.message}`, 'error');
+                });
+        }
+        
+        // Afficher les contacts
+        function displayContacts(contacts) {
+            const container = document.getElementById('contactsList');
+            container.innerHTML = '';
+            
+            if (contacts.length === 0) {
+                container.innerHTML = '<p>Aucun contact</p>';
+                return;
+            }
+            
+            contacts.forEach(contact => {
+                const div = document.createElement('div');
+                div.className = 'chat-item';
+                div.onclick = () => selectContact(contact);
+                div.innerHTML = `
+                    <strong>${contact.nickname || contact.name}</strong>
+                    <br>
+                    <small>${contact.phone}</small>
+                `;
+                container.appendChild(div);
+            });
+        }
+        
+        // Sélectionner un chat
+        function selectChat(chat) {
+            selectedChat = chat;
+            document.querySelectorAll('.chat-item').forEach(item => item.classList.remove('active'));
+            event.target.closest('.chat-item').classList.add('active');
+            
+            addStatus(`✅ Chat sélectionné: ${chat.name}`, 'success');
+            testLoadMessages();
+        }
+        
+        // Sélectionner un contact
+        function selectContact(contact) {
+            selectedChat = {
+                id: contact.id,
+                name: contact.nickname || contact.name,
+                type: 'contact'
+            };
+            document.querySelectorAll('.chat-item').forEach(item => item.classList.remove('active'));
+            event.target.closest('.chat-item').classList.add('active');
+            
+            addStatus(`✅ Contact sélectionné: ${contact.nickname || contact.name}`, 'success');
+            testLoadMessages();
+        }
+        
+        // Envoyer un message
+        function testSendMessage() {
+            if (!currentUser) {
+                addStatus('❌ Vous devez être connecté', 'error');
+                return;
+            }
+            
+            const receiverId = document.getElementById('receiverId').value;
+            const content = document.getElementById('messageContent').value;
+            
+            if (!receiverId || !content) {
+                addStatus('❌ Veuillez remplir tous les champs', 'error');
+                return;
+            }
+            
+            addStatus('Envoi du message...', 'info');
+            
+            const formData = new URLSearchParams();
+            formData.append('action', 'send_message');
+            formData.append('sender_id', currentUser.id);
+            formData.append('receiver_id', receiverId);
+            formData.append('group_id', '');
+            formData.append('content', content);
+            
+            fetch('php/messages.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: formData.toString()
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    addStatus(`✅ Message envoyé (ID: ${data.id})`, 'success');
+                    document.getElementById('messageContent').value = '';
+                    testLoadMessages();
+                    testLoadChats(); // Actualiser la liste
+                } else {
+                    addStatus(`❌ Erreur: ${data.error || data.message}`, 'error');
+                }
+            })
+            .catch(error => {
+                addStatus(`❌ Erreur envoi: ${error.message}`, 'error');
+            });
+        }
+        
+        // Charger les messages
+        function testLoadMessages() {
+            if (!selectedChat) {
+                addStatus('❌ Veuillez sélectionner un chat', 'error');
+                return;
+            }
+            
+            addStatus('Chargement des messages...', 'info');
+            
+            fetch(`php/messages.php?action=get_messages&chat_id=${selectedChat.id}&type=${selectedChat.type}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayMessages(data.messages);
+                        addStatus(`✅ ${data.messages.length} messages chargés`, 'success');
+                    } else {
+                        addStatus(`❌ Erreur: ${data.error}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    addStatus(`❌ Erreur chargement: ${error.message}`, 'error');
+                });
+        }
+        
+        // Afficher les messages
+        function displayMessages(messages) {
+            const container = document.getElementById('messagesList');
+            container.innerHTML = '';
+            
+            if (messages.length === 0) {
+                container.innerHTML = '<p>Aucun message</p>';
+                return;
+            }
+            
+            messages.forEach(message => {
+                const div = document.createElement('div');
+                div.className = `message-item ${message.sender_id == currentUser.id ? 'sent' : 'received'}`;
+                div.innerHTML = `
+                    <div><strong>${message.sender_id == currentUser.id ? 'Vous' : 'Contact'}</strong></div>
+                    <div>${message.content}</div>
+                    <div class="message-time">${formatTime(message.timestamp)}</div>
+                    <div class="message-status">${message.status}</div>
+                `;
+                container.appendChild(div);
+            });
+            
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        // Marquer comme lu
+        function testMarkAsRead() {
+            if (!selectedChat || !currentUser) {
+                addStatus('❌ Veuillez sélectionner un chat et être connecté', 'error');
+                return;
+            }
+            
+            addStatus('Marquage comme lu...', 'info');
+            
+            const formData = new URLSearchParams();
+            formData.append('action', 'mark_as_read');
+            formData.append('user_id', currentUser.id);
+            
+            if (selectedChat.type === 'contact') {
+                formData.append('contact_id', selectedChat.id);
+            } else if (selectedChat.type === 'group') {
+                formData.append('group_id', selectedChat.id);
+            }
+            
+            fetch('php/messages.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: formData.toString()
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    addStatus(`✅ ${data.message}`, 'success');
+                    testLoadChats(); // Actualiser la liste
+                } else {
+                    addStatus(`❌ Erreur: ${data.error}`, 'error');
+                }
+            })
+            .catch(error => {
+                addStatus(`❌ Erreur marquage: ${error.message}`, 'error');
+            });
+        }
+        
+        // Démarrer le polling
+        function startPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+            }
+            
+            pollingInterval = setInterval(() => {
+                testLoadChats();
+                if (selectedChat) {
+                    testLoadMessages();
+                }
+                document.getElementById('pollingStatus').innerHTML = `🔄 Polling actif - Dernière vérification: ${new Date().toLocaleTimeString()}`;
+                document.getElementById('pollingStatus').className = 'status success';
+            }, 5000);
+            
+            addStatus('✅ Polling démarré (vérification toutes les 5 secondes)', 'success');
+        }
+        
+        // Arrêter le polling
+        function stopPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+            
+            document.getElementById('pollingStatus').innerHTML = '⏹️ Polling arrêté';
+            document.getElementById('pollingStatus').className = 'status info';
+            addStatus('⏹️ Polling arrêté', 'info');
+        }
+        
+        // Ajouter un statut
+        function addStatus(message, type) {
+            const container = document.getElementById('status');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = `${new Date().toLocaleTimeString()}: ${message}`;
+            container.appendChild(div);
+            
+            // Garder seulement les 5 derniers statuts
+            const statuses = container.querySelectorAll('.status');
+            if (statuses.length > 5) {
+                statuses[0].remove();
+            }
+        }
+        
+        // Formater l'heure
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString('fr-FR');
+        }
+        
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            testSession();
+        });
+    </script>
+</body>
+</html> 

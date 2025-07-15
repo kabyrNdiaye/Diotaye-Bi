@@ -44,4 +44,4 @@
         <avatar/>
         <bio>Étudiant en informatique</bio>
     </user>
-<user id="5"><name>Bassy Faye</name><password>$2y$10$WVuIjYVzU0tKk/UibXn5j.XEOt4iRCmzqex21BsJ.HqLYrenB43wG</password><phone>777612135</phone><status>Offline</status></user><user id="6"><name>Fatou Ciss</name><password>$2y$10$6i55U7sC9BpD/2076nSooe3uQG5JqhsdNQg72i9HktSSFhLtNgIDC</password><phone>778009090</phone><status>Offline</status></user></users>
+<user id="5"><name>Bassy Faye</name><password>$2y$10$WVuIjYVzU0tKk/UibXn5j.XEOt4iRCmzqex21BsJ.HqLYrenB43wG</password><phone>777612135</phone><status>Offline</status></user><user id="6"><name>Fatou Ciss</name><password>$2y$10$6i55U7sC9BpD/2076nSooe3uQG5JqhsdNQg72i9HktSSFhLtNgIDC</password><phone>778009090</phone><status>Offline</status></user><user id="7"><name>rama ndiaye</name><password>$2y$10$9oNTjMbpR8j6FzFv6.IJResnpsiVcjVtD0K6wIWy3CtzCKvW8Hs4C</password><phone>772321030</phone><status>Online</status></user></users>
